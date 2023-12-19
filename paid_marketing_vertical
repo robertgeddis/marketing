@@ -2,7 +2,7 @@ with spend as (
 
 -- SEM 
   select distinct
-     d.year, d.month, d.week_start_date, d.date,  
+     d.year, d.month, d.date,  
      initcap(sm.campaign_type) as role, 'SEM' as category, 
      case when source_type <> 'GDN' and source <> 'YT' then 'SEM' 
           when source_type = 'GDN' then 'GDN'
@@ -17,14 +17,15 @@ with spend as (
   from intl.dw_f_campaign_spend_intl sm
     join reporting.DW_D_DATE d on date(sm.date) = d.date
   where d.year >= year(now())-1 
+    and d.date < date(current_date)
     and sm.country is not null
-  group by 1,2,3,4,5,6,7,8,9,10 
+  group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- FACEBOOK
   select distinct
-    d.year, d.month, d.week_start_date, d.date,
+    d.year, d.month, d.date,
     initcap(campaign_Type) as role, 'Social' as category, 'Facebook' as channel,
     case when vertical = 'Child Care' then 'Childcare'
          when vertical = 'PetCare' then 'Petcare'
@@ -41,19 +42,20 @@ union
   from intl.DW_F_FACEBOOK_SPEND_INTL fb
     join reporting.DW_D_DATE d on date(date_start) = d.date
   where d.year >= year(now())-1
-  group by 1,2,3,4,5,6,7,8,9,10
+    and d.date < date(current_date)
+  group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- QUALITY CLICK (Seekers)
   select distinct
-    year, month, week_start_date, date,
+    year, month, date,
     role, category, channel, vertical,
     country, currency,
     sum(spend) as spend
   from 
       (select distinct
-        d.year, d.month, d.week_start_date, d.date,
+        d.year, d.month, d.date,
        'Seeker' as role, 'Other Online / Affiliate' as category, 'Quality Click' as channel,  
         case when partnerid = '372' then 'Childcare'
              when partnerid in ('469', '472') then 'Housekeeping'
@@ -82,14 +84,15 @@ union
       where partnerid<>435
         and (lower(product) not like '%alltagshelfer%' or lower(product) not like '%provider%') -- Assigned default to seekers as discussed with Fabian
         and d.year >= year(now())-1
-      group by 1,2,3,4,5,6,7,8,9,10) qc
-  group by 1,2,3,4,5,6,7,8,9,10
+        and d.date < date(current_date)
+      group by 1,2,3,4,5,6,7,8,9) qc
+  group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- PUTZCHECKER (DE Seekers)
   select 
-    d.year, d.month, d.week_start_date, d.date,
+    d.year, d.month, d.date,
     'Seeker' as role, 'Other Online / Affiliate' as category, 
     'Putzchecker' as channel, 'Housekeeping' as vertical, 
     'DE' as country, 'EUR' as currency,
@@ -97,19 +100,20 @@ union
   from intl.quality_click_cpc
     join reporting.DW_D_DATE d on date(day) = d.date
   where d.year >= year(now())-1
+    and d.date < date(current_date)
   group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- MIBABY (DE Seekers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Other Online / Affiliate' as category, 'MiBaby' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Mibaby),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1  group by 1,2,3,4,5,6,7,8,9,10 
+  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Other Online / Affiliate' as category, 'MiBaby' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Mibaby),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
 
 union
 
 -- AWIN
   select distinct
-    d.year, d.month, d.week_start_date, d.date,
+    d.year, d.month, d.date,
     case when aw.commission_group_code in ('REG_P','REGP') then 'Provider' else 'Seeker' end as role,
     'Other Online / Affiliate' as category, 'Awin' as channel, 'Other' as vertical,  
     case when advertiser_id = '10557' then 'DE'
@@ -121,14 +125,15 @@ union
   from intl.awin_spend aw
     join reporting.DW_D_DATE d on date(aw.transaction_Date) = d.date
   where d.year >= year(now())-1
+      and d.date < date(current_date)
       and lower(aw.commissionStatus) in ('approved', 'pending')
-	group by 1,2,3,4,5,6,7,8,9,10
+	group by 1,2,3,4,5,6,7,8,9
 	
 union
 
 -- MEINESTADT (DE Seekers)
   select distinct
-     d.year, d.month, d.week_start_date, d.date,
+     d.year, d.month, d.date,
      'Seeker' as role, 'Other Online / Affiliate' as category, 'Meinestadt' as channel, vertical, 'DE' as country, 'EUR' as currency,
      sum(case when spend.year = spend.current_year and spend.month = spend.current_month then ((spend)/current_days) else ((spend)/days_in_month) end) as spend
   from (
@@ -155,62 +160,44 @@ union
         and lower(m.campaign) = 'online' and lower(m.site) = 'meinestadt.de' 
     where t.type in ('PriorAuthCapture','AuthAndCapture') and t.status = 'SUCCESS' and t.amount > 0
       and t.country_code = 'de'      
-      and year(t.date_created) >= year(now())-1 and date(t.date_created) < current_date()
+      and year(t.date_created) >= year(now())-1 and date(t.date_created) < date(current_date)
     group by 1,2,3,4,5,6,7
   ) spend
-    join reporting.DW_D_DATE d on spend.year = d.year and spend.month = d.month and d.date < current_date()
-    group by 1,2,3,4,5,6,7,8,9,10 
+    join reporting.DW_D_DATE d on spend.year = d.year and spend.month = d.month and d.date < date(current_date)
+    group by 1,2,3,4,5,6,7,8,9
       
 union   
 
 -- PINTEREST (DE, UK, CA + AU Seekers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, sum(DE_Seeker_Pinterest) as spend 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10 
+  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, sum(DE_Seeker_Pinterest) as spend 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'UK' as country, 'EUR' as currency, sum(UK_Seeker_Pinterest) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10 
+  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'UK' as country, 'EUR' as currency, sum(UK_Seeker_Pinterest) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_Seeker_Pinterest) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10 
+  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_Seeker_Pinterest) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'AU' as country, 'EUR' as currency, sum(AU_Seeker_Pinterest) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10
-
-union
-
--- TV (DE Seekers)
-  select distinct
-    d.year, d.month, d.week_start_date, d.date, 
-    'Seeker' as role, 'TV' as category, 'TV' as channel, 'Hosekeeping' as vertical, 'DE' as country, 'EUR' as currency,
-    sum(DE_TV) as spend
-  from intl.DW_MARKETING_SPEND_INTL
-    join reporting.DW_D_DATE d on date(spend_date) = d.date
-  where d.year >= year(now())-1
-  group by 1,2,3,4,5,6,7,8,9,10
-  
-union
-
--- SPOTIFY (DE SEEKERS ONLY)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Other Online / Affiliate' as category, 'Spotify' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency, sum(DE_SEEKER_SPOTIFY) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10
+  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'AU' as country, 'EUR' as currency, sum(AU_Seeker_Pinterest) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
 
 union
 
 -- IMPACT (CA SEEKERS ONLY)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Other Online / Affiliate' ascategory, 'Impact' as channel, 'Other' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_OTHER_ONLINE) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10  
+  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Other Online / Affiliate' ascategory, 'Impact' as channel, 'Other' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_OTHER_ONLINE) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9  
   
 union
 
 -- QUALITY CLICK (Providers)
   select distinct
-    year, month, week_start_date, date,
+    year, month, date,
     role, category, channel, vertical, country, currency,
     sum(spend) as spend_domestic_currency
   from 
       (select distinct
-        d.year, d.month, d.week_start_date, d.date,
-       'Provider' as role, 'Other Online / Affiliate' as category, 'Quality Click' as channel, 
+        d.year, d.month, d.date,
+       'Provider' as role, 'Other Online / Affiliate' as category, 'QualityClick' as channel, 
        case when partnerid = '372' then 'Childcare'
              when partnerid in ('469', '472') then 'Housekeeping'
              when partnerid in ('17', '480') then 'Petcare'
@@ -238,14 +225,15 @@ union
       where partnerid<>435
         and (lower(product) like '%alltagshelfer%' or lower(product) like '%provider%') 
         and d.year >= year(now())-1
-      group by 1,2,3,4,5,6,7,8,9,10) qc
-  group by 1,2,3,4,5,6,7,8,9,10
+        and d.date < date(current_date)
+      group by 1,2,3,4,5,6,7,8,9) qc
+  group by 1,2,3,4,5,6,7,8,9
 
 union 
 
 -- RECRUITICS (Providers)
   select distinct
-    d.year, d.month, d.week_start_date, d.date, 
+    d.year, d.month, d.date, 
     'Provider' as role, 'Other Online / Affiliate' as category, 'Recruitics' as channel, 'Other' as vertical,
     case when rc.country in ('DE','') then 'DE' 
          when rc.country = 'GB' then 'UK'
@@ -256,15 +244,16 @@ union
     join reporting.DW_D_DATE d on date(rc.day) = d.date 
   where lower(rc.source) not in ('xxx','jobg8','jobg8auto','jobtome')
     and d.year >= year(now())-1
+    and d.date < date(current_date)
     and date(d.date) < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9,10
+  group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- RECRUITICS FEE (DE Providers Only)
 select 
-  d.year, d.month, d.week_start_date, d.date,
-  'Provider' as role, 'Other Online / Affiliate' as category, 'Recrutics Fee' as channel, 'Other' as vertical, 'DE' as country, currency,
+  d.year, d.month, d.date,
+  'Provider' as role, 'Other Online / Affiliate' as category, 'Recrutics' as channel, 'Other' as vertical, 'DE' as country, currency,
   sum(case when rc_fee.year = rc_fee.current_year and rc_fee.month = rc_fee.current_month then ((commission)/current_days) else ((commission)/days_in_month) end) as spend
 from
     (select 
@@ -285,14 +274,14 @@ from
     where year(rc.day) >= year(now())-1
       and lower(source) not in ('xxx','jobg8','jobg8auto','jobtome')
     group by 1,2,3,4,5,6,7) rc_fee
-join reporting.DW_D_DATE d on rc_fee.year = d.year and rc_fee.month = d.month and d.date < current_date()
-group by 1,2,3,4,5,6,7,8,9,10
+join reporting.DW_D_DATE d on rc_fee.year = d.year and rc_fee.month = d.month and d.date < date(current_date)
+group by 1,2,3,4,5,6,7,8,9
 
 union
 
 -- STUDENT JOB (Providers)
   select distinct
-    d.year, d.month, d.week_start_date, d.date,
+    d.year, d.month, d.date,
     'Provider' as role, 'Other Online / Affiliate' as category, 'StudentJob' as channel, 'Other' as vertical,
     case when program in ('DE', 'AT', 'CH') then program
          when product like '%FR%' then 'FR'
@@ -326,14 +315,14 @@ union
   where partnerid = 435
     and (product like '%Alltagshelfer%' or product like '%Provider%')
     and d.year >= year(now())-1 
-    and date(d.date) < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9,10 
+    and d.date < date(current_date)
+  group by 1,2,3,4,5,6,7,8,9 
 
 union 
 
 -- APP JOBS (Providers)
   select distinct
-    d.year, d.month, d.week_start_date, d.date,
+    d.year, d.month, d.date,
     'Provider' as role, 'Other Online / Affiliate' as category, 'AppJobs' as channel, 'Other' as vertical,
     case when country = 'Germany' then 'DE'
          when country = 'Canada' then 'CA' 
@@ -343,46 +332,46 @@ union
   from intl.appjobs_spend aj
     join reporting.DW_D_DATE d on date(day) = d.date
   where d.year >= year(now())-1
-    and date(d.date) < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9,10 
+    and d.date < date(current_date)
+  group by 1,2,3,4,5,6,7,8,9 
   
 union
 
 -- APPCAST (DE + UK Providers) 
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1  group by 1,2,3,4,5,6,7,8,9,10 
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Other' as vertical, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Other' as vertical, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
 
 union 
 
 -- MY PERFECT JOB (DE Providers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'MyPerfectJob' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_Provider_Myperfectjob),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'MyPerfectJob' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_Provider_Myperfectjob),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- JOB LIFT (DE Providers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'JobLift' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'JobLift' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- ALLESKRALLE (DACH Providers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'AT' as country, 'EUR' as currency,ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'AT' as country, 'EUR' as currency,ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'CH' as country, 'EUR' as currency,ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 group by 1,2,3,4,5,6,7,8,9,10
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'CH' as country, 'EUR' as currency,ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
 ),
 
 -- THIS IS FOR THE LIVE USD FX RATES. TOP HALF OF UNION JOIN IS BASED ON JAGAN'S MONTHLY AVERAGE FROM 2019 - 2022 SINCE THE LIVE FX TABLE IS ONLY FROM 2023.
 live_fx_rates as (
-select distinct year, month, week_start_date, date, currency,
+select distinct year, month, date, currency,
   cast(case when year = 2022 and month = 1 and currency = 'EUR' then '1.135125807' 
             when year = 2022 and month = 2 and currency = 'EUR' then '1.132148387' 
             when year = 2022 and month = 3 and currency = 'EUR' then '1.102175' 
@@ -434,7 +423,7 @@ select distinct year, month, week_start_date, date, currency,
       end as float) as fx_rate   
 from
 (select distinct
-  d.year, d.month, d.week_start_date, d.date
+  d.year, d.month, d.date
  ,case when countrycode in ('at','be','ch','de','dk','es','fb','fi','fr','ie','nl','no','se') then 'EUR'
        when countrycode = 'uk' then 'GBP'
        when countrycode = 'ca' then 'CAD'
@@ -442,12 +431,12 @@ from
     end as currency       
  from intl.hive_member m
  join reporting.DW_D_DATE d on date(m.dateProfileComplete) = d.date 
- where d.year between 2019 and 2022) fx_v1
+ where d.year = 2022) fx_v1
          
 union
 
 select 
-  d.year, d.month, d.week_start_date, d.date,
+  d.year, d.month, d.date,
   source_currency as currency,
   currency_rate as fx_rate
 from 
@@ -478,13 +467,13 @@ from
         ) fx_r on fx.source_currency = fx_r.source_currency and fx.current_rate_date = fx_r.current_rate_date          
   group by 1,2,3) fx_daily
   join reporting.DW_D_DATE d on current_rate_date = d.date 
-group by 1,2,3,4,5,6
+group by 1,2,3,4,5
 ),
 
 -- THIS IS FOR THE FIXED CURRENT USD FX RATES
 fixed_current_fx as (
    select distinct
-    d.year, d.month, d.week_start_date, d.date,
+    d.year, d.month, d.date,
     source_currency as currency,
     currency_rate as fx_rate
   from reporting.DW_CARE_FX_RATES fx 
@@ -492,13 +481,100 @@ fixed_current_fx as (
   where target_currency = 'USD'
     and currency_rate_type = 'Current'
     and source_currency in ('EUR','GBP','CAD','AUD')
-  group by 1,2,3,4,5,6 
+  group by 1,2,3,4,5
+),
+
+basics as (
+	select
+      d.year, d.month, d.date, 
+	  initcap(m.role) as role,
+	  case when (lower(m.campaign) = 'sem' or lower(m.site) = 'gdn' or lower(m.site) = 'youtube') then 'SEM' 
+		   when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
+		   when lower(mm.howdidyouhear) = 'tv' then 'TV'
+        else 'Other Online / Affiliate' end as category,	  
+	  case when lower(m.campaign) = 'sem' then 'SEM'
+		   when lower(m.site) = 'gdn' then 'GDN'
+		   when lower(m.site) = 'youtube' then 'YouTube'
+		   when lower(m.site) = 'facebook' then 'Facebook'
+		   when lower(m.site) in ('qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs',       	'alleskralle','jobrapido', 'metajob', 'savethestudent', 'studentjob') then 'Quality Click'
+		   when lower(m.site) = 'putzchecker' then 'Putzchecker'
+		   when lower(m.site) = 'mibaby' then 'MiBaby'
+		   when lower(m.site) in ('awin', 'zanox') then 'Awin'
+		   when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
+		   when lower(m.site) = 'pinterest' then 'Pinterest'
+		   when lower(m.site) = 'impact' then 'Impact'
+		   when lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal',
+            'glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka',
+            'rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks') then 'QualityClick'
+		   when lower(m.site) in ('adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
+           'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto',
+           'trovituk','trovituksauto','ziprecruiter','reach','monster') then 'Recruitics'
+		   when lower(m.site) = 'studentjob' then 'StudentJob'
+		   when lower(m.site) = 'appjobs' then 'AppJobs'
+		   when lower(m.site) = 'appcast' then 'AppCast'
+		   when lower(m.site) = 'myperfectjob' then 'MyPerfectJob'
+		   when lower(m.site) = 'joblift' then 'JobLift'
+		   when lower(m.site) = 'alleskralle' then 'AllesKralle'
+		 end as channel,  
+		   
+      upper(m.countrycode) as country,  
+      
+	  count(distinct mm.memberid) as basics  
+
+    from intl.hive_member m   
+    join reporting.DW_D_DATE d on date(m.dateMemberSignup) = dd.date 
+    where (lower(campaign) = 'sem' 
+            or lower(site) in ('facebook', 'youtube', 'gdn', 'meinestadt.de', 'qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 
+                                'savethestudent', 'studentjob', 'putzchecker', 'awin', 'zanox', 'pinterest', 'impact', 'mibaby'))
+      and IsInternalAccount = 'false'
+      and d.year >= year(now())-1 
+      and d.date < date(current_date)
+    group by 1,2,3,4,5,6 
+),
+
+premiums as (
+ select
+      dd.year, dd.month, dd.date, 
+      upper(m.countrycode) as country,
+      case when lower(m.site) in ('qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 'savethestudent', 'studentjob', 'putzchecker', 'awin', 'zanox', 'pinterest', 'impact', 'mibaby') then 'Brand'
+           when lower(m.service) in ('br', 'all') then 'Brand'
+           when (lower(m.service) not in ('br', 'all') and mm.vertical = 'homeCare') then 'Housekeeping' 
+           when (lower(m.service) not in ('br', 'all') and (mm.vertical is null or mm.vertical = '')) then 'Childcare' 
+        else initcap(lower(m.vertical)) end as vertical, 
+      case when lower(m.campaign) = 'sem' then 'SEM' 
+           when lower(m.site) = 'facebook' then 'Facebook'
+           when lower(m.site) = 'gdn' then 'GDN'
+           when lower(m.site) = 'youtube' then 'YouTube'
+           when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
+           when lower(m.site) in ('qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 'savethestudent', 'studentjob') then 'Quality Click'
+           when lower(m.site) in ('awin', 'zanox') then 'Awin'
+           when lower(m.site) = 'putzchecker' then 'Putzchecker'
+           when lower(m.site) = 'pinterest' then 'Pinterest'
+           when lower(m.site) = 'impact' then 'Impact'
+           when lower(m.site) = 'mibaby' then 'MiBaby'
+        end as channel,        
+     count(distinct sp.subscriptionId) as premiums,
+     count(distinct case when date(sp.subscriptionDateCreated) = date(m.dateProfileComplete) then sp.subscriptionId end) as day1s,
+     count(distinct case when date(m.dateFirstPremiumSignup) = date(sp.subscriptionDateCreated) and date(sp.subscriptionDateCreated) != date(m.dateMemberSignup) then sp.subscriptionId end) as nths,
+     count(distinct case when date(m.dateFirstPremiumSignup) != date(sp.subscriptionDateCreated) then sp.subscriptionId end) as reupgrades     
+    from intl.transaction tt
+      join intl.hive_subscription_plan sp on sp.subscriptionId = tt.subscription_plan_id and sp.countrycode = tt.country_code
+      join reporting.DW_D_DATE dd         on date(sp.subscriptionDateCreated) = dd.date 
+      join intl.hive_member m            on tt.member_id = mm.memberid and tt.country_code = mm.countrycode
+   where tt.type in ('PriorAuthCapture','AuthAndCapture')
+      and tt.status = 'SUCCESS'
+      and tt.amount > 0
+      and mm.IsInternalAccount = 'false'
+      and lower(m.role) = 'seeker'
+      and (lower(campaign) = 'sem' or lower(site) in ('facebook', 'youtube', 'gdn', 'meinestadt.de', 'qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 'savethestudent', 'studentjob', 'putzchecker', 'awin', 'zanox', 'pinterest', 'impact', 'mibaby'))
+      and dd.year >= year(now())-1
+      and dd.date < date(current_date)
+  group by 1,2,3,4,5,6
 )
 
 select distinct
   coalesce(sp.year,fx.year) as year, 
   coalesce(sp.month,fx.month) as month, 
-  coalesce(sp.week_start_date,fx.week_start_date) as week_start_date, 
   cur.Current_Date_SameDay as date_current, 
   coalesce(sp.date,fx.date) as date,
   sp.role, sp.category, sp.channel, sp.vertical, sp.country,
