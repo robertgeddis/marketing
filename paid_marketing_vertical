@@ -31,7 +31,8 @@ union
          when vertical = 'PetCare' then 'Petcare'
          when vertical = 'HouseKeeping' then 'Housekeeping'
          when vertical = 'Turtoring' then 'Tutoring'
-         when vertical = 'other' then 'Other' 
+         when vertical = 'other' then 'Brand' 
+         when (lower(campaign_name) like '%rt%' or lower(campaign_name) like '%remarketing%' or lower(campaign_name) like '%all%') then 'Brand'
       end as vertical, 
     case when upper(country) = 'EN' then 'CA' 
          when upper(country) = '_'  then 'AU' 
@@ -60,7 +61,7 @@ union
         case when partnerid = '372' then 'Childcare'
              when partnerid in ('469', '472') then 'Housekeeping'
              when partnerid in ('17', '480') then 'Petcare'
-           else 'Other' end as vertical,
+           else 'Brand' end as vertical,
         case when program in ('DE', 'AT', 'CH') then program
               when product like '%FR%' then 'FR'
               when product like '%BE_nl%' then 'BE'  
@@ -115,7 +116,7 @@ union
   select distinct
     d.year, d.month, d.date,
     case when aw.commission_group_code in ('REG_P','REGP') then 'Provider' else 'Seeker' end as role,
-    'Other Online / Affiliate' as category, 'Awin' as channel, 'Other' as vertical,  
+    'Other Online / Affiliate' as category, 'Awin' as channel, 'Brand' as vertical,  
     case when advertiser_id = '10557' then 'DE'
          when advertiser_id = '10709' then 'AT'   
          when advertiser_id = '45671' then 'UK' 
@@ -184,7 +185,7 @@ union
 union
 
 -- IMPACT (CA SEEKERS ONLY)
-  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Other Online / Affiliate' ascategory, 'Impact' as channel, 'Other' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_OTHER_ONLINE) as spend
+  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Other Online / Affiliate' ascategory, 'Impact' as channel, 'Brand' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_OTHER_ONLINE) as spend
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9  
   
 union
@@ -201,7 +202,7 @@ union
        case when partnerid = '372' then 'Childcare'
              when partnerid in ('469', '472') then 'Housekeeping'
              when partnerid in ('17', '480') then 'Petcare'
-           else 'Other' end as vertical,    
+           else 'Brand' end as vertical,    
         case when program in ('DE', 'AT', 'CH') then program
               when product like '%FR%' then 'FR'
               when product like '%BE_nl%' then 'BE'  
@@ -234,7 +235,7 @@ union
 -- RECRUITICS (Providers)
   select distinct
     d.year, d.month, d.date, 
-    'Provider' as role, 'Other Online / Affiliate' as category, 'Recruitics' as channel, 'Other' as vertical,
+    'Provider' as role, 'Other Online / Affiliate' as category, 'Recruitics' as channel, 'Brand' as vertical,
     case when rc.country in ('DE','') then 'DE' 
          when rc.country = 'GB' then 'UK'
         else rc.country end as country, 
@@ -253,7 +254,7 @@ union
 -- RECRUITICS FEE (DE Providers Only)
 select 
   d.year, d.month, d.date,
-  'Provider' as role, 'Other Online / Affiliate' as category, 'Recrutics' as channel, 'Other' as vertical, 'DE' as country, currency,
+  'Provider' as role, 'Other Online / Affiliate' as category, 'Recrutics' as channel, 'Brand' as vertical, 'DE' as country, currency,
   sum(case when rc_fee.year = rc_fee.current_year and rc_fee.month = rc_fee.current_month then ((commission)/current_days) else ((commission)/days_in_month) end) as spend
 from
     (select 
@@ -282,7 +283,7 @@ union
 -- STUDENT JOB (Providers)
   select distinct
     d.year, d.month, d.date,
-    'Provider' as role, 'Other Online / Affiliate' as category, 'StudentJob' as channel, 'Other' as vertical,
+    'Provider' as role, 'Other Online / Affiliate' as category, 'StudentJob' as channel, 'Brand' as vertical,
     case when program in ('DE', 'AT', 'CH') then program
          when product like '%FR%' then 'FR'
          when product like '%BE_nl%' then 'BE'  
@@ -323,7 +324,7 @@ union
 -- APP JOBS (Providers)
   select distinct
     d.year, d.month, d.date,
-    'Provider' as role, 'Other Online / Affiliate' as category, 'AppJobs' as channel, 'Other' as vertical,
+    'Provider' as role, 'Other Online / Affiliate' as category, 'AppJobs' as channel, 'Brand' as vertical,
     case when country = 'Germany' then 'DE'
          when country = 'Canada' then 'CA' 
        end as country, 
@@ -338,34 +339,34 @@ union
 union
 
 -- APPCAST (DE + UK Providers) 
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend 
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend 
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
   union
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Other' as vertical, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Brand' as vertical, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
 
 union 
 
 -- MY PERFECT JOB (DE Providers)
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'MyPerfectJob' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_Provider_Myperfectjob),0) as spend
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'MyPerfectJob' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_Provider_Myperfectjob),0) as spend
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- JOB LIFT (DE Providers)
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'JobLift' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'JobLift' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   
 union
 
 -- ALLESKRALLE (DACH Providers)
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   union
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'AT' as country, 'EUR' as currency,ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'AT' as country, 'EUR' as currency,ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
   union
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Other' as vertical, 'CH' as country, 'EUR' as currency,ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend
+  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'CH' as country, 'EUR' as currency,ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
 ),
 
@@ -486,29 +487,28 @@ fixed_current_fx as (
 
 basics as (
 	select
-      d.year, d.month, d.date, 
+    d.year, d.month, d.date, 
 	  initcap(m.role) as role,
 	  case when (lower(m.campaign) = 'sem' or lower(m.site) = 'gdn' or lower(m.site) = 'youtube') then 'SEM' 
-		   when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
-		   when lower(mm.howdidyouhear) = 'tv' then 'TV'
-        else 'Other Online / Affiliate' end as category,	  
+		     when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
+      else 'Other Online / Affiliate' end as category,		
 	  case when lower(m.campaign) = 'sem' then 'SEM'
-		   when lower(m.site) = 'gdn' then 'GDN'
-		   when lower(m.site) = 'youtube' then 'YouTube'
-		   when lower(m.site) = 'facebook' then 'Facebook'
-		   when lower(m.site) in ('qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs',       	'alleskralle','jobrapido', 'metajob', 'savethestudent', 'studentjob') then 'Quality Click'
-		   when lower(m.site) = 'putzchecker' then 'Putzchecker'
-		   when lower(m.site) = 'mibaby' then 'MiBaby'
-		   when lower(m.site) in ('awin', 'zanox') then 'Awin'
-		   when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
-		   when lower(m.site) = 'pinterest' then 'Pinterest'
-		   when lower(m.site) = 'impact' then 'Impact'
-		   when lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal',
-            'glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka',
-            'rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks') then 'QualityClick'
-		   when lower(m.site) in ('adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
-           'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto',
-           'trovituk','trovituksauto','ziprecruiter','reach','monster') then 'Recruitics'
+		     when lower(m.site) = 'gdn' then 'GDN'
+		     when lower(m.site) = 'youtube' then 'YouTube'
+		     when lower(m.site) = 'facebook' then 'Facebook'
+		     when lower(m.site) in ('qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','alleskralle','jobrapido','metajob','savethestudent','studentjob') then 'Quality Click'
+		     when lower(m.site) = 'putzchecker' then 'Putzchecker'
+		     when lower(m.site) = 'mibaby' then 'MiBaby'
+		     when lower(m.site) in ('awin', 'zanox') then 'Awin'
+		     when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
+		     when lower(m.site) = 'pinterest' then 'Pinterest'
+		     when lower(m.site) = 'impact' then 'Impact'
+		     when lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal',
+                                'glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka',
+                                'rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks') then 'QualityClick'
+		     when lower(m.site) in ('adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
+                                'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto',
+                                'trovituk','trovituksauto','ziprecruiter','reach','monster') then 'Recruitics'
 		   when lower(m.site) = 'studentjob' then 'StudentJob'
 		   when lower(m.site) = 'appjobs' then 'AppJobs'
 		   when lower(m.site) = 'appcast' then 'AppCast'
@@ -516,86 +516,128 @@ basics as (
 		   when lower(m.site) = 'joblift' then 'JobLift'
 		   when lower(m.site) = 'alleskralle' then 'AllesKralle'
 		 end as channel,  
-		   
-      upper(m.countrycode) as country,  
-      
-	  count(distinct mm.memberid) as basics  
-
+    case when lower(m.service) in ('br', 'all') then 'Brand'
+         when lower(m.site) in ('gdn', 'youtube', 'impact', 'awin', 'zanox') then 'Brand' 
+         when ( lower(m.site) = 'facebook' and lower(m.service) in ('all', 'rt', 'influencer') ) then 'Brand'
+         when lower(m.site) = 'mibaby' then 'Childcare'
+         when ( lower(m.service) not in ('br', 'all') and m.vertical = 'homeCare' ) then 'Housekeeping' 
+         when ( lower(m.service) not in ('br', 'all') and (m.vertical is null or m.vertical = '') ) then 'Childcare' 
+      else initcap(lower(m.vertical)) end as vertical,       
+    upper(m.countrycode) as country,  
+	  count(distinct m.memberid) as basics  
     from intl.hive_member m   
-    join reporting.DW_D_DATE d on date(m.dateMemberSignup) = dd.date 
-    where (lower(campaign) = 'sem' 
-            or lower(site) in ('facebook', 'youtube', 'gdn', 'meinestadt.de', 'qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 
-                                'savethestudent', 'studentjob', 'putzchecker', 'awin', 'zanox', 'pinterest', 'impact', 'mibaby'))
+    join reporting.DW_D_DATE d on date(m.dateMemberSignup) = d.date 
+    where (
+            lower(campaign) = 'sem' 
+            or lower(site) in ('gdn','youtube','facebook','qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','alleskralle','jobrapido','metajob','savethestudent','studentjob',               
+                               'putzchecker','mibaby','awin', 'zanox','meinestadt.de','pinterest','impact','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic',
+                               'generictotal','glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent',
+                               'so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
+                               'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob',
+                               'appjobs','appcast','myperfectjob','joblift','alleskralle')
+           )
       and IsInternalAccount = 'false'
       and d.year >= year(now())-1 
       and d.date < date(current_date)
-    group by 1,2,3,4,5,6 
+    group by 1,2,3,4,5,6,7,8
 ),
 
 premiums as (
- select
-      dd.year, dd.month, dd.date, 
-      upper(m.countrycode) as country,
-      case when lower(m.site) in ('qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 'savethestudent', 'studentjob', 'putzchecker', 'awin', 'zanox', 'pinterest', 'impact', 'mibaby') then 'Brand'
-           when lower(m.service) in ('br', 'all') then 'Brand'
-           when (lower(m.service) not in ('br', 'all') and mm.vertical = 'homeCare') then 'Housekeeping' 
-           when (lower(m.service) not in ('br', 'all') and (mm.vertical is null or mm.vertical = '')) then 'Childcare' 
-        else initcap(lower(m.vertical)) end as vertical, 
-      case when lower(m.campaign) = 'sem' then 'SEM' 
-           when lower(m.site) = 'facebook' then 'Facebook'
-           when lower(m.site) = 'gdn' then 'GDN'
-           when lower(m.site) = 'youtube' then 'YouTube'
-           when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
-           when lower(m.site) in ('qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 'savethestudent', 'studentjob') then 'Quality Click'
-           when lower(m.site) in ('awin', 'zanox') then 'Awin'
-           when lower(m.site) = 'putzchecker' then 'Putzchecker'
-           when lower(m.site) = 'pinterest' then 'Pinterest'
-           when lower(m.site) = 'impact' then 'Impact'
-           when lower(m.site) = 'mibaby' then 'MiBaby'
-        end as channel,        
-     count(distinct sp.subscriptionId) as premiums,
-     count(distinct case when date(sp.subscriptionDateCreated) = date(m.dateProfileComplete) then sp.subscriptionId end) as day1s,
-     count(distinct case when date(m.dateFirstPremiumSignup) = date(sp.subscriptionDateCreated) and date(sp.subscriptionDateCreated) != date(m.dateMemberSignup) then sp.subscriptionId end) as nths,
-     count(distinct case when date(m.dateFirstPremiumSignup) != date(sp.subscriptionDateCreated) then sp.subscriptionId end) as reupgrades     
-    from intl.transaction tt
-      join intl.hive_subscription_plan sp on sp.subscriptionId = tt.subscription_plan_id and sp.countrycode = tt.country_code
-      join reporting.DW_D_DATE dd         on date(sp.subscriptionDateCreated) = dd.date 
-      join intl.hive_member m            on tt.member_id = mm.memberid and tt.country_code = mm.countrycode
-   where tt.type in ('PriorAuthCapture','AuthAndCapture')
-      and tt.status = 'SUCCESS'
-      and tt.amount > 0
-      and mm.IsInternalAccount = 'false'
-      and lower(m.role) = 'seeker'
-      and (lower(campaign) = 'sem' or lower(site) in ('facebook', 'youtube', 'gdn', 'meinestadt.de', 'qualityclick', 'blog', 'generic', 'ortsdienst', '4everglen', 'snautz', 'marktde', 'stadtlist', 'aktuellejobs', 'alleskralle', 'jobrapido', 'metajob', 'savethestudent', 'studentjob', 'putzchecker', 'awin', 'zanox', 'pinterest', 'impact', 'mibaby'))
-      and dd.year >= year(now())-1
-      and dd.date < date(current_date)
-  group by 1,2,3,4,5,6
+  select
+    d.year, d.month, d.date, 
+	  initcap(m.role) as role,
+	  case when (lower(m.campaign) = 'sem' or lower(m.site) = 'gdn' or lower(m.site) = 'youtube') then 'SEM' 
+		     when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
+      else 'Other Online / Affiliate' end as category,		
+	  case when lower(m.campaign) = 'sem' then 'SEM'
+		     when lower(m.site) = 'gdn' then 'GDN'
+		     when lower(m.site) = 'youtube' then 'YouTube'
+		     when lower(m.site) = 'facebook' then 'Facebook'
+		     when lower(m.site) in ('qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','alleskralle','jobrapido','metajob','savethestudent','studentjob') then 'Quality Click'
+		     when lower(m.site) = 'putzchecker' then 'Putzchecker'
+		     when lower(m.site) = 'mibaby' then 'MiBaby'
+		     when lower(m.site) in ('awin', 'zanox') then 'Awin'
+		     when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
+		     when lower(m.site) = 'pinterest' then 'Pinterest'
+		     when lower(m.site) = 'impact' then 'Impact'
+		     when lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal',
+                                'glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka',
+                                'rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks') then 'QualityClick'
+		     when lower(m.site) in ('adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
+                                'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto',
+                                'trovituk','trovituksauto','ziprecruiter','reach','monster') then 'Recruitics'
+		   when lower(m.site) = 'studentjob' then 'StudentJob'
+		   when lower(m.site) = 'appjobs' then 'AppJobs'
+		   when lower(m.site) = 'appcast' then 'AppCast'
+		   when lower(m.site) = 'myperfectjob' then 'MyPerfectJob'
+		   when lower(m.site) = 'joblift' then 'JobLift'
+		   when lower(m.site) = 'alleskralle' then 'AllesKralle'
+		 end as channel,  
+    case when lower(m.service) in ('br', 'all') then 'Brand'
+         when lower(m.site) in ('gdn', 'youtube', 'impact', 'awin', 'zanox') then 'Brand' 
+         when ( lower(m.site) = 'facebook' and lower(m.service) in ('all', 'rt', 'influencer') ) then 'Brand'
+         when lower(m.site) = 'mibaby' then 'Childcare'
+         when ( lower(m.service) not in ('br', 'all') and m.vertical = 'homeCare' ) then 'Housekeeping' 
+         when ( lower(m.service) not in ('br', 'all') and (m.vertical is null or m.vertical = '') ) then 'Childcare' 
+      else initcap(lower(m.vertical)) end as vertical, 
+     upper(m.countrycode) as country,       
+     count(distinct s.subscriptionId) as premiums,
+     count(distinct case when date(s.subscriptionDateCreated) = date(m.dateProfileComplete) then s.subscriptionId end) as day1s,
+     count(distinct case when date(m.dateFirstPremiumSignup) = date(s.subscriptionDateCreated) and date(s.subscriptionDateCreated) != date(m.dateMemberSignup) then s.subscriptionId end) as nths,
+     count(distinct case when date(m.dateFirstPremiumSignup) != date(s.subscriptionDateCreated) then s.subscriptionId end) as reupgrades     
+    from intl.transaction t
+      join intl.hive_subscription_plan s on s.subscriptionId = t.subscription_plan_id and s.countrycode = t.country_code
+      join reporting.DW_D_DATE d         on date(s.subscriptionDateCreated) = d.date 
+      join intl.hive_member m            on t.member_id = m.memberid and t.country_code = m.countrycode
+   where t.type in ('PriorAuthCapture','AuthAndCapture')
+      and t.status = 'SUCCESS'
+      and t.amount > 0
+      and m.IsInternalAccount = 'false'
+      and d.year >= year(now())-1
+      and d.date < date(current_date)
+      and (
+            lower(m.campaign) = 'sem' 
+            or lower(m.site) in ('gdn','youtube','facebook','qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','alleskralle','jobrapido','metajob','savethestudent','studentjob',               
+                               'putzchecker','mibaby','awin', 'zanox','meinestadt.de','pinterest','impact','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic',
+                               'generictotal','glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent',
+                               'so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
+                               'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob',
+                               'appjobs','appcast','myperfectjob','joblift','alleskralle')
+           )
+  group by 1,2,3,4,5,6,7,8
 )
 
 select distinct
-  coalesce(sp.year,fx.year) as year, 
-  coalesce(sp.month,fx.month) as month, 
-  cur.Current_Date_SameDay as date_current, 
-  coalesce(sp.date,fx.date) as date,
-  sp.role, sp.category, sp.channel, sp.vertical, sp.country,
-  coalesce(sp.currency,fx.currency) as currency, 
+  coalesce(s.year, fx.year, b.year, p.year) as year, 
+  coalesce(s.month, fx.month, b.month, p.month) as month,
+  coalesce(s.date, fx.date, b.date, p.date) as date,
+  c.Current_Date_SameDay as date_current, 
+  
+  coalesce(s.country, b.country, p.country) as country,
+  coalesce(s.role, b.role, p.role) as role,
+  coalesce(s.category, b.category, p.category) as category,
+  coalesce(s.channel, b.channel, p.channel) as channel,
+  coalesce(s.vertical, b.vertical, p.vertical) as vertical,
+  
+  coalesce(s.currency, fx.currency) as currency, 
   fx.fx_rate,
   cfx.fx_rate as current_fixed_fx_rate,
-  ifnull(sum(sp.spend),0) as spend_domestic,
-  ifnull(sum(case when sp.currency = 'EUR' then sp.spend * fx.fx_rate
-                  when sp.currency = 'GBP' then sp.spend * fx.fx_rate
-                  when sp.currency = 'CAD' then sp.spend * fx.fx_rate  
-                  when sp.currency = 'AUD' then sp.spend * fx.fx_rate end),0) as spend_live_fx_usd,
-  ifnull(sum(case when sp.currency = 'EUR' then sp.spend * cfx.fx_rate
-                  when sp.currency = 'GBP' then sp.spend * cfx.fx_rate
-                  when sp.currency = 'CAD' then sp.spend * cfx.fx_rate  
-                  when sp.currency = 'AUD' then sp.spend * cfx.fx_rate end),0) as spend_fixed_current_fx_usd
+  ifnull(sum(s.spend),0) as spend_domestic,
+  ifnull(sum(case when s.currency = 'EUR' then s.spend * fx.fx_rate
+                  when s.currency = 'GBP' then s.spend * fx.fx_rate
+                  when s.currency = 'CAD' then s.spend * fx.fx_rate  
+                  when s.currency = 'AUD' then s.spend * fx.fx_rate end),0) as spend_live_fx_usd,
+  ifnull(sum(case when s.currency = 'EUR' then s.spend * cfx.fx_rate
+                  when s.currency = 'GBP' then s.spend * cfx.fx_rate
+                  when s.currency = 'CAD' then s.spend * cfx.fx_rate  
+                  when s.currency = 'AUD' then s.spend * cfx.fx_rate end),0) as spend_fixed_current_fx_usd
                   
-from spend sp
-join analytics.DW_D_DATE_CURRENT cur             on sp.date = cur.date 
-left join live_fx_rates fx                       on sp.currency = fx.currency and sp.year = fx.year and sp.month = fx.month and sp.week_start_date = fx.week_start_date and sp.date = fx.date 
-left join fixed_current_fx cfx                   on sp.currency = cfx.currency
+from spend s
+full outer join live_fx_rates fx      on s.year = fx.year and s.month = fx.month and s.date = fx.date and s.currency = fx.currency 
+full outer join fixed_current_fx cfx  on s.currency = cfx.currency
+join analytics.DW_D_DATE_CURRENT c    on s.date = c.date 
+full outer join basics b              on s.year = b.year and s.month = b.month and s.date = b.date and s.country = b.country and s.role = b.role and s.category = b.category and s.channel = b.channel and s.vertical = b.vertical
+full outer join premiums p            on s.year = p.year and s.month = p.month and s.date = p.date and s.country = p.country and s.role = p.role and s.category = p.category and s.channel = p.channel and s.vertical = p.vertical
 
-group by 1,2,3,4,5,6,7,8,9,10,11,12,13
-order by 1,2,3,4,5 desc
-
+group by 1,2,3,4,5,6,7,8,9,10,11,12
+order by 1,2,3 desc
