@@ -57,7 +57,7 @@ union
   from 
       (select distinct
         d.year, d.month, d.date,
-       'Seeker' as role, 'Other Online / Affiliate' as category, 'Quality Click' as channel,  
+       'Seeker' as role, 'Other Online / Affiliate' as category, 'QualityClick' as channel,  
         case when partnerid = '372' then 'Childcare'
              when partnerid in ('469', '472') then 'Housekeeping'
              when partnerid in ('17', '480') then 'Petcare'
@@ -254,7 +254,7 @@ union
 -- RECRUITICS FEE (DE Providers Only)
 select 
   d.year, d.month, d.date,
-  'Provider' as role, 'Other Online / Affiliate' as category, 'Recrutics' as channel, 'Brand' as vertical, 'DE' as country, currency,
+  'Provider' as role, 'Other Online / Affiliate' as category, 'Recruitics' as channel, 'Brand' as vertical, 'DE' as country, currency,
   sum(case when rc_fee.year = rc_fee.current_year and rc_fee.month = rc_fee.current_month then ((commission)/current_days) else ((commission)/days_in_month) end) as spend
 from
     (select 
@@ -488,7 +488,7 @@ fixed_current_fx as (
 basics as (
 	select
     d.year, d.month, d.date, 
-	  initcap(m.role) as role,
+	  case when m.role is null then 'Seeker' else initcap(m.role) end as role,
 	  case when (lower(m.campaign) = 'sem' or lower(m.site) = 'gdn' or lower(m.site) = 'youtube') then 'SEM' 
 		     when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
       else 'Other Online / Affiliate' end as category,		
@@ -496,7 +496,7 @@ basics as (
 		     when lower(m.site) = 'gdn' then 'GDN'
 		     when lower(m.site) = 'youtube' then 'YouTube'
 		     when lower(m.site) = 'facebook' then 'Facebook'
-		     when lower(m.site) in ('qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','alleskralle','jobrapido','metajob','savethestudent','studentjob') then 'Quality Click'
+		     when lower(m.site) in ('qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','jobrapido','metajob','savethestudent') then 'QualityClick'
 		     when lower(m.site) = 'putzchecker' then 'Putzchecker'
 		     when lower(m.site) = 'mibaby' then 'MiBaby'
 		     when lower(m.site) in ('awin', 'zanox') then 'Awin'
@@ -545,7 +545,7 @@ basics as (
 premiums as (
   select
     d.year, d.month, d.date, 
-	  initcap(m.role) as role,
+	  case when m.role is null then 'Seeker' else initcap(m.role) end as role,
 	  case when (lower(m.campaign) = 'sem' or lower(m.site) = 'gdn' or lower(m.site) = 'youtube') then 'SEM' 
 		     when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
       else 'Other Online / Affiliate' end as category,		
@@ -553,7 +553,7 @@ premiums as (
 		     when lower(m.site) = 'gdn' then 'GDN'
 		     when lower(m.site) = 'youtube' then 'YouTube'
 		     when lower(m.site) = 'facebook' then 'Facebook'
-		     when lower(m.site) in ('qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','alleskralle','jobrapido','metajob','savethestudent','studentjob') then 'Quality Click'
+		     when lower(m.site) in ('qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','jobrapido','metajob','savethestudent') then 'QualityClick'
 		     when lower(m.site) = 'putzchecker' then 'Putzchecker'
 		     when lower(m.site) = 'mibaby' then 'MiBaby'
 		     when lower(m.site) in ('awin', 'zanox') then 'Awin'
