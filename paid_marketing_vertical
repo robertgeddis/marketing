@@ -519,7 +519,7 @@ basics as (
                                 'rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks') then 'QualityClick'
 		     when lower(m.site) in ('adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
                                 'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto',
-                                'trovituk','trovituksauto','ziprecruiter','reach','monster') then 'Recruitics'
+                                'trovituk','trovituksauto','ziprecruiter',/*'reach',*/'monster') then 'Recruitics'
 		   when lower(m.site) = 'studentjob' then 'StudentJob'
 		   when lower(m.site) = 'appjobs' then 'AppJobs'
 		   when lower(m.site) = 'appcast' then 'AppCast'
@@ -545,7 +545,7 @@ basics as (
                                'putzchecker','mibaby','awin', 'zanox','meinestadt.de','pinterest','impact','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic',
                                'generictotal','glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent',
                                'so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
-                               'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob',
+                               'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter',/*'reach',*/'monster','studentjob',
                                'appjobs','appcast','myperfectjob','joblift','alleskralle')
            )
       and m.IsInternalAccount = 'false'
@@ -578,7 +578,7 @@ premiums as (
                                 'rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks') then 'QualityClick'
 		     when lower(m.site) in ('adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
                                 'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto',
-                                'trovituk','trovituksauto','ziprecruiter','reach','monster') then 'Recruitics'
+                                'trovituk','trovituksauto','ziprecruiter',/*'reach',*/'monster') then 'Recruitics'
 		   when lower(m.site) = 'studentjob' then 'StudentJob'
 		   when lower(m.site) = 'appjobs' then 'AppJobs'
 		   when lower(m.site) = 'appcast' then 'AppCast'
@@ -616,7 +616,7 @@ premiums as (
                                'putzchecker','mibaby','awin', 'zanox','meinestadt.de','pinterest','impact','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic',
                                'generictotal','glassdoor','jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent',
                                'so.dk','stadtlist','stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde',
-                               'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob',
+                               'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter',/*'reach',*/'monster','studentjob',
                                'appjobs','appcast','myperfectjob','joblift','alleskralle')
            )
   group by 1,2,3,4,5,6,7,8,9
