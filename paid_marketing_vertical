@@ -547,7 +547,8 @@ basics as (
                                'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob',
                                'appjobs','appcast','myperfectjob','joblift','alleskralle')
            )
-      and IsInternalAccount = 'false'
+      and m.IsInternalAccount = 'false'
+      and lower(m.audience) = lower(m.role)
       and d.year >= year(now())-1 
       and d.date < date(current_date)
     group by 1,2,3,4,5,6,7,8
@@ -595,7 +596,7 @@ premiums as (
      count(distinct s.subscriptionId) as premiums,
      count(distinct case when date(s.subscriptionDateCreated) = date(m.dateProfileComplete) then s.subscriptionId end) as day1s,
      count(distinct case when date(m.dateFirstPremiumSignup) = date(s.subscriptionDateCreated) and date(s.subscriptionDateCreated) != date(m.dateMemberSignup) then s.subscriptionId end) as nths,
-     count(distinct case when date(m.dateFirstPremiumSignup) != date(s.subscriptionDateCreated) then s.subscriptionId end) as reupgrades     
+     count(distinct case when date(m.dateFirstPremiumSignup) != date(s.subscriptionDateCreated) then s.subscriptionId end) as reupgrades
     from intl.transaction t
       join intl.hive_subscription_plan s on s.subscriptionId = t.subscription_plan_id and s.countrycode = t.country_code
       join reporting.DW_D_DATE d         on date(s.subscriptionDateCreated) = d.date 
@@ -604,6 +605,7 @@ premiums as (
       and t.status = 'SUCCESS'
       and t.amount > 0
       and m.IsInternalAccount = 'false'
+      and lower(m.audience) = lower(m.role)
       and d.year >= year(now())-1
       and d.date < date(current_date)
       and (
@@ -647,7 +649,7 @@ select distinct
   ifnull(sum(p.premiums), 0) as premiums,
   ifnull(sum(p.day1s), 0) as day1s,
   ifnull(sum(p.nths), 0) as nths,
-  ifnull(sum(p.reupgrades ), 0) as reupgrades 
+  ifnull(sum(p.reupgrades), 0) as reupgrades 
                   
 from spend s
 full outer join live_fx_rates fx      on s.year = fx.year and s.month = fx.month and s.date = fx.date and s.currency = fx.currency 
