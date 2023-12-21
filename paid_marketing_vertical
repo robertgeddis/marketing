@@ -2,7 +2,7 @@ with spend as (
 
 -- SEM 
   select distinct
-     d.year, d.month, d.date,  
+     d.year, d.month, d.date, c.Current_Date_SameDay,  
      initcap(sm.campaign_type) as role, 'SEM' as category, 
      case when source_type <> 'GDN' and source <> 'YT' then 'SEM' 
           when source_type = 'GDN' then 'GDN'
@@ -15,17 +15,18 @@ with spend as (
      upper(sm.country) as country, sm.currency,
      sum(sm.cost) as spend
   from intl.dw_f_campaign_spend_intl sm
-    join reporting.DW_D_DATE d on date(sm.date) = d.date
+    join reporting.DW_D_DATE d          on date(sm.date) = d.date
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date 
   where d.year >= year(now())-1 
     and d.date < date(current_date)
     and sm.country is not null
-  group by 1,2,3,4,5,6,7,8,9
-  
+  group by 1,2,3,4,5,6,7,8,9,10
+
 union
 
 -- FACEBOOK
   select distinct
-    d.year, d.month, d.date,
+    d.year, d.month, d.date, c.Current_Date_SameDay,
     initcap(campaign_Type) as role, 'Social' as category, 'Facebook' as channel,
     case when vertical = 'Child Care' then 'Childcare'
          when vertical = 'PetCare' then 'Petcare'
@@ -41,22 +42,23 @@ union
     fb.currency,
     ifnull(sum(spend),0) as spend
   from intl.DW_F_FACEBOOK_SPEND_INTL fb
-    join reporting.DW_D_DATE d on date(date_start) = d.date
+    join reporting.DW_D_DATE d          on date(date_start) = d.date
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
   where d.year >= year(now())-1
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9
+  group by 1,2,3,4,5,6,7,8,9,10
   
 union
 
 -- QUALITY CLICK (Seekers)
   select distinct
-    year, month, date,
+    year, month, date, Current_Date_SameDay,
     role, category, channel, vertical,
     country, currency,
     sum(spend) as spend
   from 
       (select distinct
-        d.year, d.month, d.date,
+        d.year, d.month, d.date, c.Current_Date_SameDay,
        'Seeker' as role, 'Other Online / Affiliate' as category, 'QualityClick' as channel,  
         case when partnerid = '372' then 'Childcare'
              when partnerid in ('469', '472') then 'Housekeeping'
@@ -81,40 +83,42 @@ union
         'EUR' as currency,
          sum(qc.commission) as spend
       from intl.quality_click_spend qc
-        join reporting.DW_D_DATE d on date(day) = d.date
+        join reporting.DW_D_DATE d          on date(day) = d.date
+        join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
       where partnerid<>435
         and (lower(product) not like '%alltagshelfer%' or lower(product) not like '%provider%') -- Assigned default to seekers as discussed with Fabian
         and d.year >= year(now())-1
         and d.date < date(current_date)
-      group by 1,2,3,4,5,6,7,8,9) qc
-  group by 1,2,3,4,5,6,7,8,9
+      group by 1,2,3,4,5,6,7,8,9,10) qc
+  group by 1,2,3,4,5,6,7,8,9,10
   
 union
 
 -- PUTZCHECKER (DE Seekers)
   select 
-    d.year, d.month, d.date,
+    d.year, d.month, d.date, c.Current_Date_SameDay,
     'Seeker' as role, 'Other Online / Affiliate' as category, 
     'Putzchecker' as channel, 'Housekeeping' as vertical, 
     'DE' as country, 'EUR' as currency,
     ifnull((sum(clicks)*1.5),0) as spend
   from intl.quality_click_cpc
-    join reporting.DW_D_DATE d on date(day) = d.date
+    join reporting.DW_D_DATE d          on date(day) = d.date
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
   where d.year >= year(now())-1
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9
+  group by 1,2,3,4,5,6,7,8,9,10
   
 union
 
 -- MIBABY (DE Seekers)
-  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Other Online / Affiliate' as category, 'MiBaby' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Mibaby),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Seeker' as role, 'Other Online / Affiliate' as category, 'MiBaby' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Mibaby),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10 
 
 union
 
 -- AWIN
   select distinct
-    d.year, d.month, d.date,
+    d.year, d.month, d.date, c.Current_Date_SameDay,
     case when aw.commission_group_code in ('REG_P','REGP') then 'Provider' else 'Seeker' end as role,
     'Other Online / Affiliate' as category, 'Awin' as channel, 'Brand' as vertical,  
     case when advertiser_id = '10557' then 'DE'
@@ -124,17 +128,18 @@ union
   	case when advertiser_id in ('10557', '10709') then 'EUR' else 'GBP' end as currency,	   
     ifnull((sum(aw.commission_amount)*1.3),0) as spend
   from intl.awin_spend aw
-    join reporting.DW_D_DATE d on date(aw.transaction_Date) = d.date
+    join reporting.DW_D_DATE d          on date(aw.transaction_Date) = d.date
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
   where d.year >= year(now())-1
       and d.date < date(current_date)
       and lower(aw.commissionStatus) in ('approved', 'pending')
-	group by 1,2,3,4,5,6,7,8,9
+	group by 1,2,3,4,5,6,7,8,9,10
 	
 union
 
 -- MEINESTADT (DE Seekers)
   select distinct
-     d.year, d.month, d.date,
+     d.year, d.month, d.date, c.Current_Date_SameDay,
      'Seeker' as role, 'Other Online / Affiliate' as category, 'Meinestadt' as channel, vertical, 'DE' as country, 'EUR' as currency,
      sum(case when spend.year = spend.current_year and spend.month = spend.current_month then ((spend)/current_days) else ((spend)/days_in_month) end) as spend
   from (
@@ -164,40 +169,41 @@ union
       and year(t.date_created) >= year(now())-1 and date(t.date_created) < date(current_date)
     group by 1,2,3,4,5,6,7
   ) spend
-    join reporting.DW_D_DATE d on spend.year = d.year and spend.month = d.month and d.date < date(current_date)
-    group by 1,2,3,4,5,6,7,8,9
+    join reporting.DW_D_DATE d          on spend.year = d.year and spend.month = d.month and d.date < date(current_date)
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
+    group by 1,2,3,4,5,6,7,8,9,10
       
 union   
 
 -- PINTEREST (DE, UK, CA + AU Seekers)
-  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, sum(DE_Seeker_Pinterest) as spend 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'DE' as country, 'EUR' as currency, sum(DE_Seeker_Pinterest) as spend 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10 
   union
-  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'UK' as country, 'EUR' as currency, sum(UK_Seeker_Pinterest) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'UK' as country, 'EUR' as currency, sum(UK_Seeker_Pinterest) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10 
   union
-  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_Seeker_Pinterest) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_Seeker_Pinterest) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10 
   union
-  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'AU' as country, 'EUR' as currency, sum(AU_Seeker_Pinterest) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Seeker' as role, 'Social' as category, 'Pinterest' as channel, 'Childcare' as vertical, 'AU' as country, 'EUR' as currency, sum(AU_Seeker_Pinterest) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10
 
 union
 
 -- IMPACT (CA SEEKERS ONLY)
-  select distinct d.year, d.month, d.date, 'Seeker' as role, 'Other Online / Affiliate' ascategory, 'Impact' as channel, 'Brand' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_OTHER_ONLINE) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9  
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Seeker' as role, 'Other Online / Affiliate' ascategory, 'Impact' as channel, 'Brand' as vertical, 'CA' as country, 'EUR' as currency, sum(CA_OTHER_ONLINE) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10  
   
 union
 
 -- QUALITY CLICK (Providers)
   select distinct
-    year, month, date,
+    year, month, date, Current_Date_SameDay,
     role, category, channel, vertical, country, currency,
     sum(spend) as spend_domestic_currency
   from 
       (select distinct
-        d.year, d.month, d.date,
+        d.year, d.month, d.date, c.Current_Date_SameDay,
        'Provider' as role, 'Other Online / Affiliate' as category, 'QualityClick' as channel, 
        case when partnerid = '372' then 'Childcare'
              when partnerid in ('469', '472') then 'Housekeeping'
@@ -222,19 +228,20 @@ union
         'EUR' as currency,
          (sum(qc.commission) + sum(qc.currency)) as spend
       from intl.quality_click_spend qc
-        join reporting.DW_D_DATE d on date(day) = d.date
+        join reporting.DW_D_DATE d          on date(day) = d.date
+        join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
       where partnerid<>435
         and (lower(product) like '%alltagshelfer%' or lower(product) like '%provider%') 
         and d.year >= year(now())-1
         and d.date < date(current_date)
-      group by 1,2,3,4,5,6,7,8,9) qc
-  group by 1,2,3,4,5,6,7,8,9
+      group by 1,2,3,4,5,6,7,8,9,10) qc
+  group by 1,2,3,4,5,6,7,8,9,10
 
 union 
 
 -- RECRUITICS (Providers)
   select distinct
-    d.year, d.month, d.date, 
+    d.year, d.month, d.date, c.Current_Date_SameDay,
     'Provider' as role, 'Other Online / Affiliate' as category, 'Recruitics' as channel, 'Brand' as vertical,
     case when rc.country in ('DE','') then 'DE' 
          when rc.country = 'GB' then 'UK'
@@ -242,18 +249,19 @@ union
     'EUR' as currency,
     sum(rc.spend) as spend
   from intl.recruitics_spend_intl rc
-    join reporting.DW_D_DATE d on date(rc.day) = d.date 
+    join reporting.DW_D_DATE d          on date(rc.day) = d.date 
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
   where lower(rc.source) not in ('xxx','jobg8','jobg8auto','jobtome')
     and d.year >= year(now())-1
     and d.date < date(current_date)
     and date(d.date) < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9
+  group by 1,2,3,4,5,6,7,8,9,10
   
 union
 
 -- RECRUITICS FEE (DE Providers Only)
 select 
-  d.year, d.month, d.date,
+  d.year, d.month, d.date, c.Current_Date_SameDay,
   'Provider' as role, 'Other Online / Affiliate' as category, 'Recruitics' as channel, 'Brand' as vertical, 'DE' as country, currency,
   sum(case when rc_fee.year = rc_fee.current_year and rc_fee.month = rc_fee.current_month then ((commission)/current_days) else ((commission)/days_in_month) end) as spend
 from
@@ -275,14 +283,15 @@ from
     where year(rc.day) >= year(now())-1
       and lower(source) not in ('xxx','jobg8','jobg8auto','jobtome')
     group by 1,2,3,4,5,6,7) rc_fee
-join reporting.DW_D_DATE d on rc_fee.year = d.year and rc_fee.month = d.month and d.date < date(current_date)
-group by 1,2,3,4,5,6,7,8,9
+join reporting.DW_D_DATE d          on rc_fee.year = d.year and rc_fee.month = d.month and d.date < date(current_date)
+join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
+group by 1,2,3,4,5,6,7,8,9,10
 
 union
 
 -- STUDENT JOB (Providers)
   select distinct
-    d.year, d.month, d.date,
+    d.year, d.month, d.date, c.Current_Date_SameDay,
     'Provider' as role, 'Other Online / Affiliate' as category, 'StudentJob' as channel, 'Brand' as vertical,
     case when program in ('DE', 'AT', 'CH') then program
          when product like '%FR%' then 'FR'
@@ -312,18 +321,19 @@ union
              when qc.product like '%BE_nl%' and d.date >= '2022-05-01' then  qc.count*3.5
          else qc.count*1 end) as spend      
   from intl.quality_click_spend qc
-    join reporting.DW_D_DATE d on date(day) = d.date     
+    join reporting.DW_D_DATE d          on date(day) = d.date     
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
   where partnerid = 435
     and (product like '%Alltagshelfer%' or product like '%Provider%')
     and d.year >= year(now())-1 
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9 
+  group by 1,2,3,4,5,6,7,8,9,10 
 
 union 
 
 -- APP JOBS (Providers)
   select distinct
-    d.year, d.month, d.date,
+    d.year, d.month, d.date, c.Current_Date_SameDay,
     'Provider' as role, 'Other Online / Affiliate' as category, 'AppJobs' as channel, 'Brand' as vertical,
     case when country = 'Germany' then 'DE'
          when country = 'Canada' then 'CA' 
@@ -331,43 +341,44 @@ union
     'EUR' as currency,
     sum(total_spent_usd) as spend          
   from intl.appjobs_spend aj
-    join reporting.DW_D_DATE d on date(day) = d.date
+    join reporting.DW_D_DATE d          on date(day) = d.date
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
   where d.year >= year(now())-1
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8,9 
+  group by 1,2,3,4,5,6,7,8,9,10 
   
 union
 
 -- APPCAST (DE + UK Providers) 
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9 
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10 
   union
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Brand' as vertical, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Provider' as role, 'Other Online / Affiliate' as category, 'AppCast' as channel, 'Brand' as vertical, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10
 
 union 
 
 -- MY PERFECT JOB (DE Providers)
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'MyPerfectJob' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_Provider_Myperfectjob),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Provider' as role, 'Other Online / Affiliate' as category, 'MyPerfectJob' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_Provider_Myperfectjob),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10
   
 union
 
 -- JOB LIFT (DE Providers)
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'JobLift' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Provider' as role, 'Other Online / Affiliate' as category, 'JobLift' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10
   
 union
 
 -- ALLESKRALLE (DACH Providers)
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'DE' as country, 'EUR' as currency,ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10
   union
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'AT' as country, 'EUR' as currency,ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'AT' as country, 'EUR' as currency,ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10
   union
-  select distinct d.year, d.month, d.date, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'CH' as country, 'EUR' as currency,ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9
+  select distinct d.year, d.month, d.date, c.Current_Date_SameDay, 'Provider' as role, 'Other Online / Affiliate' as category, 'AllesKralle' as channel, 'Brand' as vertical, 'CH' as country, 'EUR' as currency,ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date join analytics.DW_D_DATE_CURRENT c on d.date = c.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8,9,10
 ),
 
 -- THIS IS FOR THE LIVE USD FX RATES. TOP HALF OF UNION JOIN IS BASED ON JAGAN'S MONTHLY AVERAGE FROM 2019 - 2022 SINCE THE LIVE FX TABLE IS ONLY FROM 2023.
@@ -608,10 +619,10 @@ premiums as (
 )
 
 select distinct
-  coalesce(s.year, fx.year, b.year, p.year) as year, 
-  coalesce(s.month, fx.month, b.month, p.month) as month,
-  coalesce(s.date, fx.date, b.date, p.date) as date,
-  c.Current_Date_SameDay as date_current, 
+  coalesce(s.year, b.year, p.year) as year, 
+  coalesce(s.month, b.month, p.month) as month,
+  coalesce(s.date, b.date, p.date) as date,
+  coalesce(s.Current_Date_SameDay, b.Current_Date_SameDay, p.Current_Date_SameDay) as date_current, 
   
   coalesce(s.country, b.country, p.country) as country,
   coalesce(s.role, b.role, p.role) as role,
@@ -630,14 +641,19 @@ select distinct
   ifnull(sum(case when s.currency = 'EUR' then s.spend * cfx.fx_rate
                   when s.currency = 'GBP' then s.spend * cfx.fx_rate
                   when s.currency = 'CAD' then s.spend * cfx.fx_rate  
-                  when s.currency = 'AUD' then s.spend * cfx.fx_rate end),0) as spend_fixed_current_fx_usd
+                  when s.currency = 'AUD' then s.spend * cfx.fx_rate end),0) as spend_fixed_current_fx_usd,
+  
+  ifnull(sum(b.basics), 0) as basics,
+  ifnull(sum(p.premiums), 0) as premiums,
+  ifnull(sum(p.day1s), 0) as day1s,
+  ifnull(sum(p.nths), 0) as nths,
+  ifnull(sum(p.reupgrades ), 0) as reupgrades 
                   
 from spend s
 full outer join live_fx_rates fx      on s.year = fx.year and s.month = fx.month and s.date = fx.date and s.currency = fx.currency 
 full outer join fixed_current_fx cfx  on s.currency = cfx.currency
-join analytics.DW_D_DATE_CURRENT c    on s.date = c.date 
-full outer join basics b              on s.year = b.year and s.month = b.month and s.date = b.date and s.country = b.country and s.role = b.role and s.category = b.category and s.channel = b.channel and s.vertical = b.vertical
-full outer join premiums p            on s.year = p.year and s.month = p.month and s.date = p.date and s.country = p.country and s.role = p.role and s.category = p.category and s.channel = p.channel and s.vertical = p.vertical
+full outer join basics b              on s.year = b.year and s.month = b.month and s.date = b.date and s.Current_Date_SameDay = b.Current_Date_SameDay and s.country = b.country and s.role = b.role and s.category = b.category and s.channel = b.channel and s.vertical = b.vertical
+full outer join premiums p            on s.year = p.year and s.month = p.month and s.date = p.date and s.Current_Date_SameDay = p.Current_Date_SameDay and s.country = p.country and s.role = p.role and s.category = p.category and s.channel = p.channel and s.vertical = p.vertical
 
 group by 1,2,3,4,5,6,7,8,9,10,11,12
 order by 1,2,3 desc
