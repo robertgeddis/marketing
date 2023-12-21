@@ -498,7 +498,7 @@ fixed_current_fx as (
 
 basics as (
 	select
-    d.year, d.month, d.date, 
+    d.year, d.month, d.date, c.Current_Date_SameDay,
 	  case when m.role is null then 'Seeker' else initcap(m.role) end as role,
 	  case when (lower(m.campaign) = 'sem' or lower(m.site) = 'gdn' or lower(m.site) = 'youtube') then 'SEM' 
 		     when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
@@ -537,7 +537,8 @@ basics as (
     upper(m.countrycode) as country,  
 	  count(distinct m.memberid) as basics  
     from intl.hive_member m   
-    join reporting.DW_D_DATE d on date(m.dateMemberSignup) = d.date 
+    join reporting.DW_D_DATE d          on date(m.dateMemberSignup) = d.date 
+    join analytics.DW_D_DATE_CURRENT c  on d.date = c.date
     where (
             lower(campaign) = 'sem' 
             or lower(site) in ('gdn','youtube','facebook','qualityclick','blog','generic','ortsdienst','4everglen','snautz','marktde','stadtlist','aktuellejobs','alleskralle','jobrapido','metajob','savethestudent','studentjob',               
@@ -551,12 +552,12 @@ basics as (
       and lower(m.audience) = lower(m.role)
       and d.year >= year(now())-1 
       and d.date < date(current_date)
-    group by 1,2,3,4,5,6,7,8
+    group by 1,2,3,4,5,6,7,8,9
 ),
 
 premiums as (
   select
-    d.year, d.month, d.date, 
+    d.year, d.month, d.date, c.Current_Date_SameDay,
 	  case when m.role is null then 'Seeker' else initcap(m.role) end as role,
 	  case when (lower(m.campaign) = 'sem' or lower(m.site) = 'gdn' or lower(m.site) = 'youtube') then 'SEM' 
 		     when (lower(m.site) = 'facebook' or lower(m.site) = 'pinterest') then 'Social'
@@ -600,6 +601,7 @@ premiums as (
     from intl.transaction t
       join intl.hive_subscription_plan s on s.subscriptionId = t.subscription_plan_id and s.countrycode = t.country_code
       join reporting.DW_D_DATE d         on date(s.subscriptionDateCreated) = d.date 
+      join analytics.DW_D_DATE_CURRENT c on d.date = c.date
       join intl.hive_member m            on t.member_id = m.memberid and t.country_code = m.countrycode
    where t.type in ('PriorAuthCapture','AuthAndCapture')
       and t.status = 'SUCCESS'
@@ -617,7 +619,7 @@ premiums as (
                                'jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid','neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob',
                                'appjobs','appcast','myperfectjob','joblift','alleskralle')
            )
-  group by 1,2,3,4,5,6,7,8
+  group by 1,2,3,4,5,6,7,8,9
 )
 
 select distinct
