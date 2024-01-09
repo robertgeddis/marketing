@@ -1,3 +1,35 @@
+/* 
+--- NOTES ---
+Excludes halo from results with logic 'lower(m.audience) = lower(m.role)' on lines 508 + 579
+Does NOT exclude accounts closed for fraud
+Manual vertical assignment for all metrics
+    + Putzchecker = HK
+    + MiBaby = CC
+    + Awin = Other
+    + Pinterest = BR
+    + TV = HK
+    + Spotify = BR
+    + Impact = Other
+    + Kleinanzeigen = Other
+    + StudentJob = Other
+    + AppCast = Other
+    + MyPerfectJob = Other
+    + JobLift = Other
+    + AllesKralle = Other 
+    + Facebook when no vertical or is RMKT or ALL = 'Other'
+    + GDN + YouTube = BR
+    + Spotify = BR
+    + TV = HK
+    + Awin + Impact = Other
+    --- Quality Click Partners
+    + Mibaby = CC
+    + PutzfrauAgentur = HK
+    + Putzchecker = HK
+    + Mein Hundeblog (ID 17) = PC
+    + Snautz = PC
+    + All other Quality Click partners = Other
+*/
+
 with spend as (
 
 -- SEM 
@@ -503,6 +535,7 @@ basics as (
             'neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob','appjobs','myperfectjob','joblift','alleskralle')
            )
       and m.IsInternalAccount = 'false'
+      and lower(m.audience) = lower(m.role)
       and d.year >= year(now())-1 
       and d.date < date(current_date)
     group by 1,2,3,4,5,6,7,8 
@@ -573,6 +606,7 @@ premiums as (
       and tt.status = 'SUCCESS'
       and tt.amount > 0
       and m.IsInternalAccount = 'false'
+      and lower(m.audience) = lower(m.role)
       and 
          (
           lower(m.campaign) = 'sem' or 
