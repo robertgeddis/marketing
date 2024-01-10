@@ -640,7 +640,13 @@ select distinct
   ifnull(sum(case when sp.currency = 'EUR' then sp.spend_domestic_currency * fx.fx_rate
                   when sp.currency = 'GBP' then sp.spend_domestic_currency * fx.fx_rate
                   when sp.currency = 'CAD' then sp.spend_domestic_currency * fx.fx_rate  
-                  when sp.currency = 'AUD' then sp.spend_domestic_currency * fx.fx_rate end),0) as spend_fixed_current_fx_usd
+                  when sp.currency = 'AUD' then sp.spend_domestic_currency * fx.fx_rate end),0) as spend_fixed_current_fx_usd,
+                  
+  ifnull(sum(b.basics),0) as basics,
+  ifnull(sum(p.day1s),0) as day1s,
+  ifnull(sum(p.nths),0) as nths,
+  ifnull(sum(p.new_premiums),0) as new_premiums,
+  ifnull(sum(p.reupgrades),0) as reupgrades
                   
 from spend sp
 left join analytics.DW_D_DATE_CURRENT cur     on sp.date = cur.date 
