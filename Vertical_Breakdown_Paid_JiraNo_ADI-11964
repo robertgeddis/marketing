@@ -1,7 +1,7 @@
 /* 
 --- NOTES ---
 Excludes halo from results with logic 'lower(m.audience) = lower(m.role)' on lines 508 + 579
-Does NOT exclude accounts closed for fraud
+Excludes accounts closed for fraud in lines 552 + 624
 Manual vertical assignment for all metrics
     + Putzchecker = HK
     + MiBaby = CC
@@ -535,6 +535,7 @@ basics as (
             'neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob','appjobs','myperfectjob','joblift','alleskralle')
            )
       and m.IsInternalAccount = 'false'
+      and m.closedforfraud = 'false'
       and lower(m.audience) = lower(m.role)
       and d.year >= year(now())-1 
       and d.date < date(current_date)
@@ -606,6 +607,7 @@ premiums as (
       and tt.status = 'SUCCESS'
       and tt.amount > 0
       and m.IsInternalAccount = 'false'
+      and m.closedforfraud = 'false'
       and lower(m.audience) = lower(m.role)
       and 
          (
@@ -643,6 +645,7 @@ select distinct
                   when sp.currency = 'AUD' then sp.spend_domestic_currency * fx.fx_rate end),0) as spend_fixed_current_fx_usd,
                   
   ifnull(sum(b.basics),0) as basics,
+  ifnull(sum(p.premiums),0) as premiums,
   ifnull(sum(p.day1s),0) as day1s,
   ifnull(sum(p.nths),0) as nths,
   ifnull(sum(p.new_premiums),0) as new_premiums,
