@@ -2,32 +2,7 @@
 --- NOTES ---
 Excludes halo from results with logic 'lower(m.audience) = lower(m.role)' on lines 508 + 579
 Excludes accounts closed for fraud in lines 552 + 624
-Manual vertical assignment for all metrics
-    + Putzchecker = HK
-    + MiBaby = CC
-    + Awin = Other
-    + Pinterest = BR
-    + TV = HK
-    + Spotify = BR
-    + Impact = Other
-    + Kleinanzeigen = Other
-    + StudentJob = Other
-    + AppCast = Other
-    + MyPerfectJob = Other
-    + JobLift = Other
-    + AllesKralle = Other 
-    + Facebook when no vertical or is RMKT or ALL = 'Other'
-    + GDN + YouTube = BR
-    + Spotify = BR
-    + TV = HK
-    + Awin + Impact = Other
-    --- Quality Click Partners
-    + Mibaby = CC
-    + PutzfrauAgentur = HK
-    + Putzchecker = HK
-    + Mein Hundeblog (ID 17) = PC
-    + Snautz = PC
-    + All other Quality Click partners = Other
+If spend is manually assigned a vertical this is also done for basics and premiums
 */
 
 with spend as (
