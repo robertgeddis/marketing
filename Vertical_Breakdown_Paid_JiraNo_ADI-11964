@@ -543,6 +543,23 @@ basics as (
       and d.year >= year(now())-1 
       and d.date < date(current_date)
     group by 1,2,3,4,5,6,7,8 
+    
+    union
+    
+    select
+      d.year, d.month, d.week_start_date, d.date,
+      'Seeker' as role, 'TV' as channel, 'DE' as country, 'Housekeeping' as vertical, 
+      count(distinct m.memberid) as basics  
+    from intl.hive_member m   
+    join reporting.DW_D_DATE d on date(m.dateMemberSignup) = d.date 
+    where m.howdidyouhear = 'tv'
+      and m.countrycode = 'de'
+      and m.IsInternalAccount = 'false'
+      and m.closedforfraud = 'false'
+      and lower(m.audience) = lower(m.role)
+      and d.year >= year(now())-1 
+      and d.date < date(current_date)
+    group by 1,2,3,4,5,6,7,8  
 ),
 
 premiums as (
@@ -622,6 +639,32 @@ premiums as (
           'adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde','jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid',
           'neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob','appjobs','myperfectjob','joblift','alleskralle')
          )
+      and d.year >= year(now())-1
+      and d.date < date(current_date)
+  group by 1,2,3,4,5,6,7,8 
+  
+  union
+  
+  select
+     d.year, d.month, d.week_start_date, d.date,
+     'Seeker' as role, 'TV' as channel, 'DE' as country, 'Housekeeping' as vertical, 
+     count(distinct sp.subscriptionId) as premiums,
+     count(distinct case when date(sp.subscriptionDateCreated) = date(m.dateProfileComplete) then sp.subscriptionId end) as day1s,
+     count(distinct case when date(m.dateFirstPremiumSignup) = date(sp.subscriptionDateCreated) and date(sp.subscriptionDateCreated) != date(m.dateMemberSignup) then sp.subscriptionId end) as nths,
+     count(distinct case when date(m.dateFirstPremiumSignup) = date(sp.subscriptionDateCreated) then sp.subscriptionId end) as new_premiums,
+     count(distinct case when date(m.dateFirstPremiumSignup) != date(sp.subscriptionDateCreated) then sp.subscriptionId end) as reupgrades     
+   from intl.transaction tt
+      join intl.hive_subscription_plan sp on sp.subscriptionId = tt.subscription_plan_id and sp.countrycode = tt.country_code
+      join reporting.DW_D_DATE d          on date(sp.subscriptionDateCreated) = d.date 
+      join intl.hive_member m             on tt.member_id = m.memberid and tt.country_code = m.countrycode
+   where tt.type in ('PriorAuthCapture','AuthAndCapture')
+      and tt.status = 'SUCCESS'
+      and tt.amount > 0
+      and m.IsInternalAccount = 'false'
+      and m.closedforfraud = 'false'
+      and lower(m.audience) = lower(m.role)
+      and m.howdidyouhear = 'tv'
+      and m.countrycode = 'de'
       and d.year >= year(now())-1
       and d.date < date(current_date)
   group by 1,2,3,4,5,6,7,8 
