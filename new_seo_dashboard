@@ -15,7 +15,7 @@ from
       select
          date(v.startDate) as date, 
          v.countrycode,
-         initcap(v.rxaudience) as role,
+         lower(v.rxaudience) as role,
          case when lower(v.device) = 'smartphone' then 'mobile' 
               when ( v.device = '' or v.device is null ) then 'mobile' 
            else lower(v.device) end as device,
@@ -44,7 +44,9 @@ from
          case when lower(device) = 'smartphone' then 'mobile' 
               when ( device = '' or device is null ) then 'mobile' 
            else lower(device) end as device,
-         case when lower(service) = 'homecare' then 'housekeeping' else lower(service) end as vertical, 
+          case when lower(service) = 'homecare' then 'housekeeping' 
+              when lower(service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
+            else lower(service) end as vertical,
          case when lower(creativeversion) like '%?refh%' then 'magazine-article' else lower(campaignname) end as page_type,
          count(distinct memberid) as basics
       from intl.hive_member
@@ -65,7 +67,9 @@ from
         case when lower(m.device) = 'smartphone' then 'mobile' 
              when ( m.device = '' or m.device is null ) then 'mobile' 
            else lower(m.device) end as device,
-        case when lower(m.service) = 'homecare' then 'housekeeping' else lower(m.service) end as vertical, 
+        case when lower(m.service) = 'homecare' then 'housekeeping' 
+             when lower(m.service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
+          else lower(m.service) end as vertical, 
         case when lower(m.creativeversion) like '%?refh%' then 'magazine-article' else lower(m.campaignname) end as page_type,
         count(distinct case when date(m.dateFirstPremiumSignup)  = date(s.subscriptionDateCreated) and date(m.dateFirstPremiumSignup) = date(m.datemembersignup) then s.subscriptionId end) as day1s,
         count(distinct case when date(m.dateFirstPremiumSignup)  = date(s.subscriptionDateCreated) and date(m.dateFirstPremiumSignup) <> date(m.datemembersignup) then s.subscriptionId end) as nths,
