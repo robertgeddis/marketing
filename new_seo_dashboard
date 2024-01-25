@@ -1,0 +1,18 @@
+with visits as (
+    select
+       date(startDate) as date 
+      ,upper(countrycode) as country
+      ,case when lower(device) = 'smartphone' then 'mobile' 
+            when ( device = '' or device is null ) then 'mobile' 
+         else lower(device) end as device
+      ,lower(rxaudience) as role
+      ,case when lower(rxservice) = 'homecare' then 'Housekeeping' else initcap(rxservice) end as vertical     
+      ,case when rxcreativeversion like '%?refh%' then 'Magazine-Article' else rxcampaignname end as page_type     
+      ,count(distinct visitorid) as visitors 
+      ,count(distinct case when (memberid is null or signup = true) then visitorid end) as non_member_visitors   
+    from intl.hive_visit 
+    where lower(rxcampaign) = 'seo'  
+      and (rxcampaignname <> '' or rxcreativeversion like '%?refh%')
+      and year >= year(now())-2
+    group by 1,2,3,4,5,6,7
+),
