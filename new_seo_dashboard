@@ -1,18 +1,57 @@
 with visits as (
     select
-       date(startDate) as date 
-      ,upper(countrycode) as country
-      ,case when lower(device) = 'smartphone' then 'mobile' 
+       date(startDate) as date, 
+       countrycode,
+       initcap(rxaudience) as role,
+       case when lower(device) = 'smartphone' then 'mobile' 
             when ( device = '' or device is null ) then 'mobile' 
-         else lower(device) end as device
-      ,lower(rxaudience) as role
-      ,case when lower(rxservice) = 'homecare' then 'Housekeeping' else initcap(rxservice) end as vertical     
-      ,case when rxcreativeversion like '%?refh%' then 'Magazine-Article' else rxcampaignname end as page_type     
-      ,count(distinct visitorid) as visitors 
-      ,count(distinct case when (memberid is null or signup = true) then visitorid end) as non_member_visitors   
+         else lower(device) end as device,
+       case when lower(rxservice) = 'homecare' then 'housekeeping' else lower(rxservice) end as vertical,     
+       case when rxcreativeversion like '%?refh%' then 'magazine-article' else lower(rxcampaignname) end as page_type,     
+       count(distinct visitorid) as visits, 
+       count(distinct case when (memberid is null or signup = true) then visitorid end) as non_member_visits   
     from intl.hive_visit 
     where lower(rxcampaign) = 'seo'  
       and (rxcampaignname <> '' or rxcreativeversion like '%?refh%')
       and year >= year(now())-2
-    group by 1,2,3,4,5,6,7
+    group by 1,2,3,4,5,6 
 ),
+
+basics as (
+    select 
+       date(dateMemberSignup) as date,
+       countrycode,
+       lower(role) as role,
+       case when lower(device) = 'smartphone' then 'mobile' 
+            when ( device = '' or device is null ) then 'mobile' 
+         else lower(device) end as device,
+       case when lower(service) = 'homecare' then 'housekeeping' else lower(service) end as vertical, 
+       case when creativeversion like '%?refh%' then 'magazine-article' else lower(campaignname) end as page_type,
+       count(distinct memberid) as basics
+    from intl.hive_member
+    where year(dateMemberSignup) >= year(now())-2
+      and lower(campaign) = 'seo'
+      and (campaignname <> '' or creativeversion like '%?refh%')
+      and isinternalaccount = 'false'
+      and role <> ''
+      and service <> ''
+    group by 1,2,3,4,5,6
+) 
+
+select 
+  coalesce(v.date, b.date) as date,
+  coalesce(v.countrycode, b.countrycode) as country,
+  coalesce(v.role, b.role) as role,
+  coalesce(v.device, b.device) as device,
+  coalesce(v.vertical, b.vertical) as vertical,
+  coalesce(v.page_type, b.page_type) as page_type,
+  
+  ifnull(sum(v.visits),0) as visits,
+  ifnull(sum(v.non_member_visits),0) as non_member_visits,
+  ifnull(sum(b.basics),0) as basics
+  
+from visits v
+full outer join basics b on v.date = b.date and v.countrycode = b.countrycode and v.role = b.role
+                            and v.device = b.device and v.vertical = b.vertical and v.page_type = b.page_type
+                            
+group by 1,2,3,4,5,6
