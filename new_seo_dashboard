@@ -41,7 +41,35 @@ basics as (
       and role <> ''
       and service <> ''
     group by 1,2,3,4,5,6
-) 
+),
+
+premiums as (
+    select
+      date(sp.subscriptionDateCreated) as date,
+      m.countrycode,
+      lower(m.role) as role,
+      case when lower(m.device) = 'smartphone' then 'mobile' 
+           when ( m.device = '' or m.device is null ) then 'mobile' 
+         else lower(m.device) end as device,
+      case when lower(m.service) = 'homecare' then 'housekeeping' else lower(m.service) end as vertical, 
+      case when lower(m.creativeversion) like '%?refh%' then 'magazine-article' else lower(m.campaignname) end as page_type,
+      count(distinct case when date(m.dateFirstPremiumSignup)  = date(s.subscriptionDateCreated) and date(m.dateFirstPremiumSignup) = date(m.datemembersignup) then s.subscriptionId end) as day1s,
+      count(distinct case when date(m.dateFirstPremiumSignup)  = date(s.subscriptionDateCreated) and date(m.dateFirstPremiumSignup) <> date(m.datemembersignup) then s.subscriptionId end) as nths,
+      count(distinct case when date(m.dateFirstPremiumSignup) != date(s.subscriptionDateCreated) then s.subscriptionId end) as reupgrades   
+    from intl.transaction t
+      join intl.hive_subscription_plan s  on s.subscriptionId = t.subscription_plan_id and s.countrycode = t.country_code   
+      join intl.hive_member m             on t.member_id = m.memberid and t.country_code = m.countrycode
+    where t.type in ('PriorAuthCapture','AuthAndCapture')
+      and t.status = 'SUCCESS' 
+      and t.amount > 0 
+      and s.year(sp.subscriptionDateCreated) >= year(now())-2
+      and lower(m.campaign) = 'seo'
+      and (m.campaignname <> '' or m.creativeversion like '%?refh%')
+      and m.role <> ''
+      and m.service <> ''
+      and m.IsInternalAccount = 'false'
+    group by 1,2,3,4,5,6  
+)
 
 select 
   coalesce(v.date, b.date) as date,
@@ -50,15 +78,14 @@ select
   coalesce(v.device, b.device) as device,
   coalesce(v.vertical, b.vertical) as vertical,
   coalesce(v.page_type, b.page_type) as page_type,
-  
   ifnull(sum(v.visits),0) as visits,
   ifnull(sum(v.non_member_visits),0) as non_member_visits,
   ifnull(sum(v.reached_enrollment),0) as reached_enrollment,
-  ifnull(sum(b.basics),0) as basics
-  
+  ifnull(sum(b.basics),0) as basics,
+  ifnull(sum(p.day1s),0) as day1s,
+  ifnull(sum(p.nths),0) as nths,
+  ifnull(sum(p.reupgrades),0) as reupgrades
 from visits v
-full outer join basics b on v.date = b.date and v.countrycode = b.countrycode and v.role = b.role
-                            and v.device = b.device and v.vertical = b.vertical and v.page_type = b.page_type
-                            
+full outer join basics b    on v.date = b.date and v.countrycode = b.countrycode and v.role = b.role and v.device = b.device and v.vertical = b.vertical and v.page_type = b.page_type
+full outer join premiums p  on v.date = p.date and v.countrycode = p.countrycode and v.role = p.role and v.device = p.device and v.vertical = p.vertical and v.page_type = p.page_type                            
 group by 1,2,3,4,5,6
-  
