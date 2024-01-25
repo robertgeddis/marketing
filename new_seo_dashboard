@@ -2,7 +2,8 @@ select
   dd.date, dc.Current_Date_SameDay,
   ab.country, ab.role, ab.device, ab.vertical, ab.page_type, 
   sum(ab.visits) as visits, 
-  sum(ab.non_member_visits) as non_member_visits, 
+  sum(ab.non_member_visits) as non_member_visits,
+  sum(ab.bounces) as bounces, 
   sum(ab.reached_enrollment) as reached_enrollment,
   sum(ab.basics) as basics, 
   sum(ab.day1s) as day1s, 
@@ -22,6 +23,7 @@ from
          case when lower(v.rxcreativeversion) like '%?refh%' then 'magazine-article' else lower(v.rxcampaignname) end as page_type,     
          count(distinct v.visitorid) as visits, 
          count(distinct case when (v.memberid is null or v.signup = true) then v.visitorid end) as non_member_visits,
+         count(distinct case when (v.memberid is null or v.signup = true) and v.pageViews = 1 then v.visitorid end) as bounces,
          count(distinct enr.visitorid) as reached_enrollment   
       from intl.hive_visit v
       left join intl.hive_event enr   on enr.countrycode = v.countrycode and enr.visitorid = v.visitorid and enr.datecreated > v.startDate
@@ -92,6 +94,7 @@ from
     coalesce(v.page_type, b.page_type, p.page_type) as page_type,
     ifnull(sum(v.visits),0) as visits,
     ifnull(sum(v.non_member_visits),0) as non_member_visits,
+    ifnull(sum(v.bounces),0) as bounces,
     ifnull(sum(v.reached_enrollment),0) as reached_enrollment,
     ifnull(sum(b.basics),0) as basics,
     ifnull(sum(p.day1s),0) as day1s,
@@ -106,5 +109,3 @@ join reporting.DW_D_DATE dd         on ab.date = dd.date
 join analytics.dw_d_date_current dc on dd.date = dc.date
 
 group by 1,2,3,4,5,6,7
-
-  
