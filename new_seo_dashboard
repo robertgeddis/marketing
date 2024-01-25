@@ -62,7 +62,7 @@ premiums as (
     where t.type in ('PriorAuthCapture','AuthAndCapture')
       and t.status = 'SUCCESS' 
       and t.amount > 0 
-      and s.year(s.subscriptionDateCreated) >= year(now())-2
+      and year(s.subscriptionDateCreated) >= year(now())-2
       and lower(m.campaign) = 'seo'
       and (m.campaignname <> '' or m.creativeversion like '%?refh%')
       and m.role <> ''
