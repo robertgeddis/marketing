@@ -72,12 +72,12 @@ premiums as (
 )
 
 select 
-  coalesce(v.date, b.date) as date,
-  coalesce(v.countrycode, b.countrycode) as country,
-  coalesce(v.role, b.role) as role,
-  coalesce(v.device, b.device) as device,
-  coalesce(v.vertical, b.vertical) as vertical,
-  coalesce(v.page_type, b.page_type) as page_type,
+  coalesce(v.date, b.date, p.date) as date,
+  coalesce(v.countrycode, b.countrycode, p.countrycode) as country,
+  coalesce(v.role, b.role, p.role) as role,
+  coalesce(v.device, b.device, p.device) as device,
+  coalesce(v.vertical, b.vertical, p.vertical) as vertical,
+  coalesce(v.page_type, b.page_type, p.page_type) as page_type,
   ifnull(sum(v.visits),0) as visits,
   ifnull(sum(v.non_member_visits),0) as non_member_visits,
   ifnull(sum(v.reached_enrollment),0) as reached_enrollment,
