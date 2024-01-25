@@ -15,10 +15,10 @@ with visits as (
     left join intl.hive_event enr   on enr.countrycode = v.countrycode and enr.visitorid = v.visitorid and enr.datecreated > v.startDate
                                     and enr.name = 'PageView' and (enr.currentpageurl like '%join-now%' or enr.currentpageurl like '%register%') 
                                     and enr.year >= year(now())-2 and date(enr.datecreated) < date(current_date)
-    where lower(rxcampaign) = 'seo'  
-      and (rxcampaignname <> '' or rxcreativeversion like '%?refh%')
-      and year >= year(now())-2
-      and date(startDate) < date(current_date)
+    where lower(v.rxcampaign) = 'seo'  
+      and (v.rxcampaignname <> '' or lower(v.rxcreativeversion) like '%?refh%')
+      and v.year >= year(now())-2
+      and date(v.startDate) < date(current_date)
     group by 1,2,3,4,5,6 
 ),
 
