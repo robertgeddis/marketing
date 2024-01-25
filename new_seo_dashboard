@@ -45,7 +45,7 @@ basics as (
 
 premiums as (
     select
-      date(sp.subscriptionDateCreated) as date,
+      date(s.subscriptionDateCreated) as date,
       m.countrycode,
       lower(m.role) as role,
       case when lower(m.device) = 'smartphone' then 'mobile' 
