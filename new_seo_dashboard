@@ -9,11 +9,16 @@ with visits as (
        case when lower(rxservice) = 'homecare' then 'housekeeping' else lower(rxservice) end as vertical,     
        case when rxcreativeversion like '%?refh%' then 'magazine-article' else lower(rxcampaignname) end as page_type,     
        count(distinct visitorid) as visits, 
-       count(distinct case when (memberid is null or signup = true) then visitorid end) as non_member_visits   
-    from intl.hive_visit 
+       count(distinct case when (memberid is null or signup = true) then visitorid end) as non_member_visits,
+       count(distinct enr.visitorid) as reached_enrollment   
+    from intl.hive_visit v
+    left join intl.hive_event enr   on enr.countrycode = v.countrycode and enr.visitorid = v.visitorid and enr.datecreated > v.startDate
+                                    and enr.name = 'PageView' and (enr.currentpageurl like '%join-now%' or enr.currentpageurl like '%register%') 
+                                    and enr.year >= year(now())-2 and date(enr.datecreated) < date(current_date)
     where lower(rxcampaign) = 'seo'  
       and (rxcampaignname <> '' or rxcreativeversion like '%?refh%')
       and year >= year(now())-2
+      and date(startDate) < date(current_date)
     group by 1,2,3,4,5,6 
 ),
 
@@ -48,6 +53,7 @@ select
   
   ifnull(sum(v.visits),0) as visits,
   ifnull(sum(v.non_member_visits),0) as non_member_visits,
+  ifnull(sum(v.reached_enrollment),0) as reached_enrollment,
   ifnull(sum(b.basics),0) as basics
   
 from visits v
@@ -55,3 +61,4 @@ full outer join basics b on v.date = b.date and v.countrycode = b.countrycode an
                             and v.device = b.device and v.vertical = b.vertical and v.page_type = b.page_type
                             
 group by 1,2,3,4,5,6
+  
