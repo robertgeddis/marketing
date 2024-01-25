@@ -1,15 +1,15 @@
 with visits as (
     select
-       date(startDate) as date, 
-       countrycode,
-       initcap(rxaudience) as role,
-       case when lower(device) = 'smartphone' then 'mobile' 
-            when ( device = '' or device is null ) then 'mobile' 
-         else lower(device) end as device,
-       case when lower(rxservice) = 'homecare' then 'housekeeping' else lower(rxservice) end as vertical,     
-       case when rxcreativeversion like '%?refh%' then 'magazine-article' else lower(rxcampaignname) end as page_type,     
-       count(distinct visitorid) as visits, 
-       count(distinct case when (memberid is null or signup = true) then visitorid end) as non_member_visits,
+       date(v.startDate) as date, 
+       v.countrycode,
+       initcap(v.rxaudience) as role,
+       case when lower(v.device) = 'smartphone' then 'mobile' 
+            when ( v.device = '' or v.device is null ) then 'mobile' 
+         else lower(v.device) end as device,
+       case when lower(v.rxservice) = 'homecare' then 'housekeeping' else lower(v.rxservice) end as vertical,     
+       case when lower(v.rxcreativeversion) like '%?refh%' then 'magazine-article' else lower(v.rxcampaignname) end as page_type,     
+       count(distinct v.visitorid) as visits, 
+       count(distinct case when (v.memberid is null or v.signup = true) then v.visitorid end) as non_member_visits,
        count(distinct enr.visitorid) as reached_enrollment   
     from intl.hive_visit v
     left join intl.hive_event enr   on enr.countrycode = v.countrycode and enr.visitorid = v.visitorid and enr.datecreated > v.startDate
@@ -31,7 +31,7 @@ basics as (
             when ( device = '' or device is null ) then 'mobile' 
          else lower(device) end as device,
        case when lower(service) = 'homecare' then 'housekeeping' else lower(service) end as vertical, 
-       case when creativeversion like '%?refh%' then 'magazine-article' else lower(campaignname) end as page_type,
+       case when lower(creativeversion) like '%?refh%' then 'magazine-article' else lower(campaignname) end as page_type,
        count(distinct memberid) as basics
     from intl.hive_member
     where year(dateMemberSignup) >= year(now())-2
