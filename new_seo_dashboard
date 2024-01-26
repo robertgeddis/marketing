@@ -1,6 +1,6 @@
 select 
   dd.date, dc.Current_Date_SameDay,
-  ab.country, ab.role, ab.device, ab.vertical, ab.page_type, 
+  upper(ab.country) as country, initcap(ab.role) as role, initcap(ab.device) as device, initcap(ab.vertical) as vertical, initcap(ab.page_type) as page_type, 
   sum(ab.visits) as visits, 
   sum(ab.non_member_visits) as non_member_visits,
   sum(ab.bounces) as bounces, 
