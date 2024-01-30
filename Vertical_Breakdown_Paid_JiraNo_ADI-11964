@@ -1,8 +1,9 @@
 /* 
 --- NOTES ---
-Excludes halo from results with logic 'lower(m.audience) = lower(m.role)' on lines 508 + 579
-Excludes accounts closed for fraud in lines 552 + 624
-If spend is manually assigned a vertical this is also done for basics and premiums
+:: Excludes halo from results with logic 'lower(m.audience) = lower(m.role)' on lines 508 + 579
+:: Excludes accounts closed for fraud in lines 552 + 624
+:: If spend is manually assigned a vertical this is also done for basics and premiums
+:: Recruitics fee included for DE providers with vertical as 'Other' - see line 306
 */
 
 with spend as (
@@ -305,7 +306,7 @@ union
 -- RECRUITICS FEE (DE Providers Only)
 select 
   d.year, d.month, d.week_start_date, d.date,
-  'Provider' as role, 'Recrutics Fee' as channel, 'DE' as country, 'Other' as vertical, currency,
+  'Provider' as role, 'Recruitics' as channel, 'DE' as country, 'Other' as vertical, currency,
   ifnull(sum(case when rc_fee.year = rc_fee.current_year and rc_fee.month = rc_fee.current_month then ((commission)/current_days) else ((commission)/days_in_month) end),0) as spend_domestic_currency
 from
     (select 
@@ -458,11 +459,11 @@ basics as (
            when lower(m.site) = 'facebook' then 'Facebook'
            when ( m.creativeversion <> '472' and lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
            'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
-           'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido') ) then 'Quality Click' 
+           'stellenwerk','studiumratgeber','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido') ) then 'Quality Click' 
            when m.creativeversion = '472' then 'Putzchecker'
            when lower(m.site) = 'mibaby' then 'MiBaby'
            when lower(m.site) in ('awin', 'zanox') then 'Awin'
-           when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
+           when lower(m.site) in ('meinestadt.de', 'meinestadt', 'meinestadtp') then 'Meinestadt'
            when lower(m.site) = 'pinterest' then 'Pinterest'
            when lower(m.site) = 'spotify' then 'Spotify'
            when lower(m.site) = 'impact' then 'Impact'
@@ -508,9 +509,10 @@ basics as (
             m.creativeversion = '472' or
             lower(m.site) in ('gdn','youtube','facebook','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
             'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
-            'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido','mibaby','awin','zanox','meinestadt.de','pinterest','spotify','impact','kleinanzeigen',
+            'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido','mibaby','awin','zanox','pinterest','spotify','impact','kleinanzeigen',
             'adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde','jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid',
-            'neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob','appjobs','myperfectjob','joblift','alleskralle')
+            'neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob','appjobs','myperfectjob','joblift','alleskralle') or
+            ( lower(m.site) in ('meinestadt.de', 'meinestadt', 'meinestadtp') and lower(m.role) = 'seeker')
            )
       and m.IsInternalAccount = 'false'
       and m.closedforfraud = 'false'
@@ -529,6 +531,7 @@ basics as (
     join reporting.DW_D_DATE d on date(m.dateMemberSignup) = d.date 
     where m.howdidyouhear = 'tv'
       and m.countrycode = 'de'
+      and lower(m.role) = 'seeker'
       and m.IsInternalAccount = 'false'
       and m.closedforfraud = 'false'
       and lower(m.audience) = lower(m.role)
@@ -547,11 +550,11 @@ premiums as (
            when lower(m.site) = 'facebook' then 'Facebook'
            when ( m.creativeversion <> '472' and lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
            'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
-           'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido') ) then 'Quality Click' 
+           'stellenwerk','studiumratgeber','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido') ) then 'Quality Click' 
            when m.creativeversion = '472' then 'Putzchecker'
            when lower(m.site) = 'mibaby' then 'MiBaby'
            when lower(m.site) in ('awin', 'zanox') then 'Awin'
-           when lower(m.site) = 'meinestadt.de' then 'Meinestadt'
+           when lower(m.site) in ('meinestadt.de', 'meinestadt', 'meinestadtp') then 'Meinestadt'
            when lower(m.site) = 'pinterest' then 'Pinterest'
            when lower(m.site) = 'spotify' then 'Spotify'
            when lower(m.site) = 'impact' then 'Impact'
@@ -610,9 +613,10 @@ premiums as (
           m.creativeversion = '472' or
           lower(m.site) in ('gdn','youtube','facebook','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
           'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
-          'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido','mibaby','awin','zanox','meinestadt.de','pinterest','spotify','impact','kleinanzeigen',
+          'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido','mibaby','awin','zanox','pinterest','spotify','impact','kleinanzeigen',
           'adzuna','adzunaauto','allthetopbananas','indeed','indeedauto','jobisj','jobisjob','jobisjobauto','jobisjobde','jobisjobdeauto','jobrapido','jobrapidoauto','jobrapidoleads','jooble','joobleauto','jorapaid',
-          'neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob','appjobs','myperfectjob','joblift','alleskralle')
+          'neuvoo','trovit','trovitde','trovitdeauto','trovituk','trovituksauto','ziprecruiter','reach','monster','studentjob','appjobs','myperfectjob','joblift','alleskralle') or
+          ( lower(m.site) in ('meinestadt.de', 'meinestadt', 'meinestadtp') and lower(m.role) = 'seeker')
          )
       and d.year >= year(now())-1
       and d.date < date(current_date)
@@ -640,45 +644,60 @@ premiums as (
       and lower(m.audience) = lower(m.role)
       and m.howdidyouhear = 'tv'
       and m.countrycode = 'de'
+      and lower(m.role) = 'seeker'
       and d.year >= year(now())-1
       and d.date < date(current_date)
   group by 1,2,3,4,5,6,7,8 
 )
 
-select distinct
-  coalesce(sp.year, b.year, p.year) as year, 
-  coalesce(sp.month, b.month, p.month) as month, 
-  coalesce(sp.week_start_date, b.week_start_date, p.week_start_date) as week_start_date, 
-  cur.Current_Date_SameDay as date_current, 
-  coalesce(sp.date, b.date, p.date) as date,
+select
+  t.year, t.month, t.week_start_date, t.date, current_date() as run_date, 
+  cur.Yesterday, cur.WeekToDate, cur.LastWeekWTD, dty.date as 'Date_Current', cur.MonthToDate, cur.YearToDate,
   
-  coalesce(sp.role, b.role, p.role) as role,
-  coalesce(sp.channel, b.channel, p.channel) as channel, 
-  coalesce(sp.country, b.country, p.country) as country,
-  coalesce(sp.vertical, b.vertical, p.vertical) as vertical,
+  role, channel, country, vertical, currency, fx_rate, 
+  spend_domestic_currency, spend_fixed_current_fx_usd,
+  basics, premiums, day1s, nths, new_premiums, reupgrades
   
-  coalesce(sp.currency,fx.currency) as currency, 
-  fx.fx_rate,
-  ifnull(sum(sp.spend_domestic_currency),0) as spend_domestic_currency,
-  ifnull(sum(case when sp.currency = 'EUR' then sp.spend_domestic_currency * fx.fx_rate
-                  when sp.currency = 'GBP' then sp.spend_domestic_currency * fx.fx_rate
-                  when sp.currency = 'CAD' then sp.spend_domestic_currency * fx.fx_rate  
-                  when sp.currency = 'AUD' then sp.spend_domestic_currency * fx.fx_rate end),0) as spend_fixed_current_fx_usd,
+from (
+      select distinct
+        coalesce(sp.year, b.year, p.year) as year, 
+        coalesce(sp.month, b.month, p.month) as month, 
+        coalesce(sp.week_start_date, b.week_start_date, p.week_start_date) as week_start_date,  
+        coalesce(sp.date, b.date, p.date) as date,
+  
+        coalesce(sp.role, b.role, p.role) as role,
+        coalesce(sp.channel, b.channel, p.channel) as channel, 
+        coalesce(sp.country, b.country, p.country) as country,
+        coalesce(sp.vertical, b.vertical, p.vertical) as vertical,
+  
+        coalesce(sp.currency,fx.currency) as currency, 
+        fx.fx_rate,
+        
+        ifnull(sum(sp.spend_domestic_currency),0) as spend_domestic_currency,
+        ifnull(sum(case when sp.currency = 'EUR' then sp.spend_domestic_currency * fx.fx_rate
+                        when sp.currency = 'GBP' then sp.spend_domestic_currency * fx.fx_rate
+                        when sp.currency = 'CAD' then sp.spend_domestic_currency * fx.fx_rate  
+                        when sp.currency = 'AUD' then sp.spend_domestic_currency * fx.fx_rate end),0) as spend_fixed_current_fx_usd,
                   
-  ifnull(sum(b.basics),0) as basics,
-  ifnull(sum(p.premiums),0) as premiums,
-  ifnull(sum(p.day1s),0) as day1s,
-  ifnull(sum(p.nths),0) as nths,
-  ifnull(sum(p.new_premiums),0) as new_premiums,
-  ifnull(sum(p.reupgrades),0) as reupgrades
+        ifnull(sum(b.basics),0) as basics,
+        ifnull(sum(p.premiums),0) as premiums,
+        ifnull(sum(p.day1s),0) as day1s,
+        ifnull(sum(p.nths),0) as nths,
+        ifnull(sum(p.new_premiums),0) as new_premiums,
+        ifnull(sum(p.reupgrades),0) as reupgrades
                   
-from spend sp
-left join analytics.DW_D_DATE_CURRENT cur     on sp.date = cur.date 
-left join fixed_current_fx fx                 on sp.currency = fx.currency 
-full outer join basics b                      on sp.year = b.year and sp.month = b.month and sp.week_start_date = b.week_start_date and sp.date = b.date 
-                                              and sp.role = b.role and sp.country = b.country and sp.channel = b.channel and sp.vertical = b.vertical  
-full outer join premiums p                    on sp.year = p.year and sp.month = p.month and sp.week_start_date = p.week_start_date and sp.date = p.date 
-                                              and sp.role = p.role and sp.country = p.country and sp.channel = p.channel and sp.vertical = p.vertical 
+      from spend sp
+      left join fixed_current_fx fx                 on sp.currency = fx.currency 
+      full outer join basics b                      on sp.year = b.year and sp.month = b.month and sp.week_start_date = b.week_start_date and sp.date = b.date 
+                                                    and sp.role = b.role and sp.country = b.country and sp.channel = b.channel and sp.vertical = b.vertical  
+      full outer join premiums p                    on sp.year = p.year and sp.month = p.month and sp.week_start_date = p.week_start_date and sp.date = p.date 
+                                                    and sp.role = p.role and sp.country = p.country and sp.channel = p.channel and sp.vertical = p.vertical 
 
-group by 1,2,3,4,5,6,7,8,9,10,11
-order by 1,2,3,4,5 desc
+      group by 1,2,3,4,5,6,7,8,9,10
+      order by 1,2,3,4 desc
+      ) t
+  join analytics.dw_d_date_current cur on t.date = cur.date
+  join reporting.DW_D_DATE dty on dty.date = cur.Current_Date_SameDay
+  
+group by 1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25
+order by 1,2,3,4 desc
