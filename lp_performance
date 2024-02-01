@@ -1,4 +1,5 @@
 select 
+    dd.year, dd.month_name, dd.week_start_date, dd.date,
     case 
        when v.entryurl like '%login%' then 'Login'
        when v.entryurl like '%password%' then 'Password'
@@ -21,14 +22,11 @@ select
     else 'Other' end as 'Page Type',
     count(distinct v.visitorid) as Visits,
     count(distinct su.memberid) as Signups,
-    (( count(distinct su.memberid) / count(distinct v.visitorid) )*100) as '% V-B',
-    count(distinct up.memberid) as Upgrades,
-    (( count(distinct up.memberid) / count(distinct su.memberid) )*100) as '% B-P',  
-    (( count(distinct up.memberid) / count(distinct v.visitorid) )*100) as '% V-P'                         
+    count(distinct up.memberid) as Upgrades                        
                                    
 from intl.hive_visit v
-left join intl.hive_event su on v.visitorid = su.visitorid and v.sessionid = su.sessionid and v.countrycode = su.countrycode and su.name in ('Signup', 'SeekerSignup', 'ProviderSignup')
-left join intl.hive_event up on v.visitorid = up.visitorid and v.sessionid = up.sessionid and v.countrycode = up.countrycode and up.name = 'Upgrade'
-where v.year = 2023
-  and (v.memberid is null or v.signup = true)
-group by 1
+join reporting.DW_D_DATE dd   on date(v.startDate) = dd.date and dd.year >= year(now())-1
+left join intl.hive_event su  on v.visitorid = su.visitorid and v.sessionid = su.sessionid and v.countrycode = su.countrycode and su.name in ('Signup', 'SeekerSignup', 'ProviderSignup')
+left join intl.hive_event up  on v.visitorid = up.visitorid and v.sessionid = up.sessionid and v.countrycode = up.countrycode and up.name = 'Upgrade'
+where (v.memberid is null or v.signup = true)
+group by 1,2,3,4,5
