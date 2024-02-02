@@ -91,13 +91,52 @@ union
          sum(qc.commission) as spend
       from intl.quality_click_spend qc
         join reporting.DW_D_DATE d on date(day) = d.date
-      where partnerid <> 435
+      where partnerid not in ('435', '469')
         and (lower(product) not like '%alltagshelfer%' or lower(product) not like '%provider%') -- Assigned default to seekers as discussed with Fabian
         and d.year >= year(now())-1
         and d.date < date(current_date)
       group by 1,2,3,4,5,6,7,8,9) qc
   group by 1,2,3,4,5,6,7,8,9 
   
+union
+
+-- PUTZFRAU AGENTUR (DE Seekers HK)
+  select distinct
+    year, month, week_start_date, date,
+    role, channel, country, vertical, currency,
+    ifnull(sum(spend),0) as spend_domestic_currency
+  from 
+      (select distinct
+        d.year, d.month, d.week_start_date, d.date,
+       'Seeker' as role, 'Putzfrau Agentur' as channel,     
+        case when program in ('DE', 'AT', 'CH') then program
+              when product like '%FR%' then 'FR'
+              when product like '%BE_nl%' then 'BE'  
+              when product like '%BE_fr%' then 'FB'  
+              when product like '%DK%' then 'DK'  
+              when product like '%FI%' then 'FI'  
+              when product like '%NL%' then 'NL'  
+              when product like '%SE%' then 'SE'  
+              when product like '%IE%' then 'IE'  
+              when product like '%ES%' then 'ES'  
+              when product like '%AU%' then 'AU'  
+              when product like '%NO%' then 'NO'
+              when product like '%NZ%' then 'NZ'
+              when product like '%UK%' then 'UK'
+              when product like '%CA%' then 'CA'
+         end as country, 
+         'Housekeeping' as vertical,
+        'EUR' as currency,
+         sum(qc.commission) as spend
+      from intl.quality_click_spend qc
+        join reporting.DW_D_DATE d on date(day) = d.date
+      where partnerid = '469'
+        and (lower(product) not like '%alltagshelfer%' or lower(product) not like '%provider%') -- Assigned default to seekers as discussed with Fabian
+        and d.year >= year(now())-1
+        and d.date < date(current_date)
+      group by 1,2,3,4,5,6,7,8,9) qc
+  group by 1,2,3,4,5,6,7,8,9 
+
 union
 
 -- PUTZCHECKER (DE Seekers)
@@ -457,10 +496,11 @@ basics as (
            when lower(m.site) = 'gdn' then 'GDN'
            when lower(m.site) = 'youtube' then 'YouTube'
            when lower(m.site) = 'facebook' then 'Facebook'
-           when ( m.creativeversion <> '472' and lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
+           when ( m.creativeversion not in ('472', '469') and lower(m.site) in ('absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
            'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
            'stellenwerk','studiumratgeber','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido') ) then 'Quality Click' 
            when m.creativeversion = '472' then 'Putzchecker'
+           when m.creativeversion = '469' then 'Putzfrau Agentur'
            when lower(m.site) = 'mibaby' then 'MiBaby'
            when lower(m.site) in ('awin', 'zanox') then 'Awin'
            when lower(m.site) in ('meinestadt.de', 'meinestadt', 'meinestadtp') then 'Meinestadt'
@@ -482,6 +522,7 @@ basics as (
            when (lower(m.service) not in ('br', 'all') and m.vertical = 'homeCare') then 'Housekeeping' 
            when (lower(m.service) not in ('br', 'all') and (m.vertical is null or m.vertical = '')) then 'Childcare'
            when m.creativeversion = '472' then 'Housekeeping'
+           when m.creativeversion = '469' then 'Housekeeping'
            when m.creativeversion = '372' then 'Childcare'
            when m.creativeversion = '468' then 'Housekeeping'
            when m.creativeversion = '17' then 'Petcare'
@@ -507,6 +548,7 @@ basics as (
     where (
             lower(m.campaign) = 'sem' or 
             m.creativeversion = '472' or
+            m.creativeversion = '469' or
             lower(m.site) in ('gdn','youtube','facebook','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
             'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
             'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido','mibaby','awin','zanox','pinterest','spotify','impact','kleinanzeigen',
@@ -552,6 +594,7 @@ premiums as (
            'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
            'stellenwerk','studiumratgeber','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido') ) then 'Quality Click' 
            when m.creativeversion = '472' then 'Putzchecker'
+           when m.creativeversion = '469' then 'Putzfrau Agentur'
            when lower(m.site) = 'mibaby' then 'MiBaby'
            when lower(m.site) in ('awin', 'zanox') then 'Awin'
            when lower(m.site) in ('meinestadt.de', 'meinestadt', 'meinestadtp') then 'Meinestadt'
@@ -573,6 +616,7 @@ premiums as (
            when (lower(m.service) not in ('br', 'all') and m.vertical = 'homeCare') then 'Housekeeping' 
            when (lower(m.service) not in ('br', 'all') and (m.vertical is null or m.vertical = '')) then 'Childcare'
            when m.creativeversion = '472' then 'Housekeeping'
+           when m.creativeversion = '469' then 'Housekeeping'
            when m.creativeversion = '372' then 'Childcare'
            when m.creativeversion = '468' then 'Housekeeping'
            when m.creativeversion = '17' then 'Petcare'
@@ -611,6 +655,7 @@ premiums as (
          (
           lower(m.campaign) = 'sem' or 
           m.creativeversion = '472' or
+          m.creativeversion = '469' or
           lower(m.site) in ('gdn','youtube','facebook','absolventen','babysitter.de','blog','careerjet','criteo','erdbeerlounge','erdbeerlounge2','gelegenheitsjobs','generic','generictotal','glassdoor',
           'jobrobot','mapmeo','marktde','marktplaats','metajob','mitula','nannytax','njobs','palkkausfi','provider','qualityclick','quoka','rabathelten','recrudo','rubrikk','savethestudent','so.dk','stadtlist',
           'stellenwerk','studiumratgeber','meinestadt','aktuellejobs','jobkicks','ortsdienst','4everglen','snautz','jobrapido','mibaby','awin','zanox','pinterest','spotify','impact','kleinanzeigen',
