@@ -21,7 +21,9 @@ from
               when ( v.device = '' or v.device is null ) then 'empty' 
            else lower(v.device) end as device,
          case when lower(v.rxservice) = 'homecare' then 'housekeeping' else lower(v.rxservice) end as vertical,     
-         case when lower(v.rxcreativeversion) like '%?refh%' then 'magazine-article' else lower(v.rxcampaignname) end as page_type,     
+         case when lower(v.rxcreativeversion) like '%?refh%' then 'magazine-article' 
+              when (lower(v.rxcampaignname) = '' or lower(v.rxcampaignname) is null) then 'Other' 
+            else lower(v.rxcampaignname) end as page_type,     
          count(distinct v.visitorid) as visits, 
          count(distinct case when (v.memberid is null or v.signup = true) then v.visitorid end) as non_member_visits,
          count(distinct case when (v.memberid is null or v.signup = true) and v.pageViews = 1 then v.visitorid end) as bounces,
@@ -31,7 +33,6 @@ from
                                       and enr.name = 'PageView' and (enr.currentpageurl like '%join-now%' or enr.currentpageurl like '%register%') 
                                       and enr.year >= year(now())-2 and date(enr.datecreated) < date(current_date)
       where lower(v.rxcampaign) = 'seo'  
-        and (v.rxcampaignname <> '' or lower(v.rxcreativeversion) like '%?refh%')
         and v.year >= year(now())-2
         and date(v.startDate) < date(current_date)
       group by 1,2,3,4,5,6 
@@ -41,14 +42,16 @@ from
       select 
          date(m.dateMemberSignup) as date,
          m.countrycode,
-         lower(m.role) as role,
+         case when (m.role = '' or m.role is null) then 'seeker' else lower(m.role) end as role,
          case when lower(m.device) = 'smartphone' then 'mobile' 
               when ( m.device = '' or m.device is null ) then 'empty' 
            else lower(m.device) end as device,
-          case when lower(m.service) = 'homecare' then 'housekeeping' 
-              when lower(m.service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
-            else lower(m.service) end as vertical,
-         case when lower(m.creativeversion) like '%?refh%' then 'magazine-article' else lower(m.campaignname) end as page_type,
+          case when m.vertical = 'homeCare' then 'Housekeeping' 
+               when (m.vertical is null or m.vertical = '') then 'Childcare' 
+            else initcap(lower(m.vertical)) end as vertical,
+          case when lower(m.creativeversion) like '%?refh%' then 'magazine-article' 
+              when (lower(m.campaignname) = '' or lower(m.campaignname) is null) then 'Other' 
+            else lower(m.campaignname) end as page_type,  
          count(distinct m.memberid) as basics,
          count(distinct c.memberid) as closed_account_sameday
       from intl.hive_member m
@@ -56,10 +59,7 @@ from
                                     and c.name = 'AccountActionRequest' and c.accountAction = 'Close' and c.year >= year(now())-2
       where year(m.dateMemberSignup) >= year(now())-2
         and lower(m.campaign) = 'seo'
-        and (m.campaignname <> '' or m.creativeversion like '%?refh%')
         and m.isinternalaccount = 'false'
-        and m.role <> ''
-        and m.service <> ''
       group by 1,2,3,4,5,6      
   ),
 
@@ -67,14 +67,16 @@ from
       select
         date(s.subscriptionDateCreated) as date,
         m.countrycode,
-        lower(m.role) as role,
+        case when (m.role = '' or m.role is null) then 'seeker' else lower(m.role) end as role,
         case when lower(m.device) = 'smartphone' then 'mobile' 
              when ( m.device = '' or m.device is null ) then 'empty' 
            else lower(m.device) end as device,
-        case when lower(m.service) = 'homecare' then 'housekeeping' 
-             when lower(m.service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
-          else lower(m.service) end as vertical, 
-        case when lower(m.creativeversion) like '%?refh%' then 'magazine-article' else lower(m.campaignname) end as page_type,
+        case when m.vertical = 'homeCare' then 'Housekeeping' 
+             when (m.vertical is null or m.vertical = '') then 'Childcare' 
+          else initcap(lower(m.vertical)) end as vertical, 
+        case when lower(m.creativeversion) like '%?refh%' then 'magazine-article' 
+             when (lower(m.campaignname) = '' or lower(m.campaignname) is null) then 'Other' 
+          else lower(m.campaignname) end as page_type, 
         count(distinct case when date(m.dateFirstPremiumSignup)  = date(s.subscriptionDateCreated) and date(m.dateFirstPremiumSignup) = date(m.datemembersignup) then s.subscriptionId end) as day1s,
         count(distinct case when date(m.dateFirstPremiumSignup)  = date(s.subscriptionDateCreated) and date(m.dateFirstPremiumSignup) <> date(m.datemembersignup) then s.subscriptionId end) as nths,
         count(distinct case when date(m.dateFirstPremiumSignup) != date(s.subscriptionDateCreated) then s.subscriptionId end) as reupgrades   
@@ -86,11 +88,8 @@ from
         and t.amount > 0 
         and year(s.subscriptionDateCreated) >= year(now())-2
         and lower(m.campaign) = 'seo'
-        and (m.campaignname <> '' or m.creativeversion like '%?refh%')
-        and m.role <> ''
-        and m.service <> ''
         and m.IsInternalAccount = 'false'
-      group by 1,2,3,4,5,6  
+      group by 1,2,3,4,5,6    
   )
 
   select 
