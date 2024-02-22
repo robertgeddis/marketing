@@ -18,7 +18,7 @@ from
          v.countrycode,
          lower(v.rxaudience) as role,
          case when lower(v.device) = 'smartphone' then 'mobile' 
-              when ( v.device = '' or v.device is null ) then 'mobile' 
+              when ( v.device = '' or v.device is null ) then 'empty' 
            else lower(v.device) end as device,
          case when lower(v.rxservice) = 'homecare' then 'housekeeping' else lower(v.rxservice) end as vertical,     
          case when lower(v.rxcreativeversion) like '%?refh%' then 'magazine-article' else lower(v.rxcampaignname) end as page_type,     
@@ -43,7 +43,7 @@ from
          m.countrycode,
          lower(m.role) as role,
          case when lower(m.device) = 'smartphone' then 'mobile' 
-              when ( m.device = '' or m.device is null ) then 'mobile' 
+              when ( m.device = '' or m.device is null ) then 'empty' 
            else lower(m.device) end as device,
           case when lower(m.service) = 'homecare' then 'housekeeping' 
               when lower(m.service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
@@ -69,7 +69,7 @@ from
         m.countrycode,
         lower(m.role) as role,
         case when lower(m.device) = 'smartphone' then 'mobile' 
-             when ( m.device = '' or m.device is null ) then 'mobile' 
+             when ( m.device = '' or m.device is null ) then 'empty' 
            else lower(m.device) end as device,
         case when lower(m.service) = 'homecare' then 'housekeeping' 
              when lower(m.service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
