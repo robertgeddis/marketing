@@ -6,6 +6,7 @@ select
   sum(ab.bounces) as bounces, 
   sum(ab.reached_enrollment) as reached_enrollment,
   sum(ab.basics) as basics, 
+  sum(ab.closed_account_sameday) as closed_account_sameday,
   sum(ab.day1s) as day1s, 
   sum(ab.nths) as nths, 
   sum(ab.reupgrades) as reupgrades
@@ -38,25 +39,28 @@ from
 
   basics as (
       select 
-         date(dateMemberSignup) as date,
-         countrycode,
-         lower(role) as role,
-         case when lower(device) = 'smartphone' then 'mobile' 
-              when ( device = '' or device is null ) then 'mobile' 
-           else lower(device) end as device,
-          case when lower(service) = 'homecare' then 'housekeeping' 
-              when lower(service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
-            else lower(service) end as vertical,
-         case when lower(creativeversion) like '%?refh%' then 'magazine-article' else lower(campaignname) end as page_type,
-         count(distinct memberid) as basics
-      from intl.hive_member
-      where year(dateMemberSignup) >= year(now())-2
-        and lower(campaign) = 'seo'
-        and (campaignname <> '' or creativeversion like '%?refh%')
-        and isinternalaccount = 'false'
-        and role <> ''
-        and service <> ''
-      group by 1,2,3,4,5,6
+         date(m.dateMemberSignup) as date,
+         m.countrycode,
+         lower(m.role) as role,
+         case when lower(m.device) = 'smartphone' then 'mobile' 
+              when ( m.device = '' or m.device is null ) then 'mobile' 
+           else lower(m.device) end as device,
+          case when lower(m.service) = 'homecare' then 'housekeeping' 
+              when lower(m.service) in ('honorarygrandma', 'babysitter', 'nanny', 'childminder') then 'childcare'
+            else lower(m.service) end as vertical,
+         case when lower(m.creativeversion) like '%?refh%' then 'magazine-article' else lower(m.campaignname) end as page_type,
+         count(distinct m.memberid) as basics,
+         count(distinct c.memberid) as closed_account_sameday
+      from intl.hive_member m
+        left join intl.hive_event c on c.countrycode = m.countrycode and c.memberid = m.memberid and date(c.datecreated) = date(m.dateMemberSignup)
+                                    and c.name = 'AccountActionRequest' and c.accountAction = 'Close' and c.year >= year(now())-2
+      where year(m.dateMemberSignup) >= year(now())-2
+        and lower(m.campaign) = 'seo'
+        and (m.campaignname <> '' or m.creativeversion like '%?refh%')
+        and m.isinternalaccount = 'false'
+        and m.role <> ''
+        and m.service <> ''
+      group by 1,2,3,4,5,6      
   ),
 
   premiums as (
@@ -101,6 +105,7 @@ from
     ifnull(sum(v.bounces),0) as bounces,
     ifnull(sum(v.reached_enrollment),0) as reached_enrollment,
     ifnull(sum(b.basics),0) as basics,
+    ifnull(sum(b.closed_account_sameday),0) as closed_account_sameday,
     ifnull(sum(p.day1s),0) as day1s,
     ifnull(sum(p.nths),0) as nths,
     ifnull(sum(p.reupgrades),0) as reupgrades
