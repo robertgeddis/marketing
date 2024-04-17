@@ -24,7 +24,7 @@ union
 ----------SOCIAL SPEND
   select distinct 
     year, month, week_start_date, date,
-    role, country, currency, 'Social' as channel,
+    role, 'Social' as channel, country, currency,
     sum(spend_domestic_currency) as spend_domestic_currency
   from (
   -- FACEBOOK
@@ -67,7 +67,7 @@ union
 ---------- AFFILIATE SPEND
   select distinct 
     year, month, week_start_date, date,
-    role, country, currency, 'Affiliate' as channel,
+    role, 'Affiliate' as channel, country, currency,
     sum(spend_domestic_currency) as spend_domestic_currency
   from (
      -- QUALITY CLICK (Seekers) + PUTZFRAU AGENTUR (DE Seekers HK - partnerid = '469')
