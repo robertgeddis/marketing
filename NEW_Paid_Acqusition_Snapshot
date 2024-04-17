@@ -338,7 +338,7 @@ union
   -- KLEINANZEIGEN (DE Providers) *** Using DE_Provider_Nebenan column in intl.DW_MARKETING_SPEND_INTL
   select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Provider_Nebenan),0) as spend_domestic_currency
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
-  ) social_spend
+  ) affiliate_spend
 group by 1,2,3,4,5,6,7,8
 ),
 
