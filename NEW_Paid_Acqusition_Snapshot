@@ -1,11 +1,3 @@
-/* 
---- NOTES ---
-:: Excludes halo from results with logic 'lower(m.audience) = lower(m.role)' on lines 508 + 579
-:: Excludes accounts closed for fraud in lines 552 + 624
-:: If spend is manually assigned a vertical this is also done for basics and premiums
-:: Recruitics fee included for DE providers with vertical as 'Other' - see line 306
-*/
-
 with spend as (
 
 -- SEM 
