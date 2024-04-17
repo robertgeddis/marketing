@@ -1,6 +1,6 @@
 with spend as (
 
--- SEM 
+----------SEM SPEND 
   select distinct
      d.year, d.month, d.week_start_date, d.date,  
      initcap(sem.campaign_type) as role, 
@@ -21,29 +21,59 @@ with spend as (
   group by 1,2,3,4,5,6,7,8
   
 union
+----------SOCIAL SPEND
+  select distinct 
+    year, month, week_start_date, date,
+    role, country, currency, 'Social' as channel,
+    sum(spend_domestic_currency) as spend_domestic_currency
+  from (
+  -- FACEBOOK
+    select distinct
+      d.year, d.month, d.week_start_date, d.date,
+      initcap(campaign_Type) as role,  
+      case when upper(country) = 'EN' then 'CA' 
+           when upper(country) = '_'  then 'AU' 
+           when upper(country) in ('VE', 'PO')  then 'DE' 
+        else upper(country) end as country,    
+      fb.currency,
+      ifnull(sum(spend),0) as spend_domestic_currency
+    from intl.DW_F_FACEBOOK_SPEND_INTL fb
+      join reporting.DW_D_DATE d on date(date_start) = d.date
+    where d.year >= year(now())-1
+      and d.date < date(current_date)
+    group by 1,2,3,4,5,6,7
+   union
+  -- TikTok (DE Seekers)
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Mibaby),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  union   
+  -- PINTEREST (DE, UK, CA + AU Seekers)
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Pinterest),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  union
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'UK' as country, 'EUR' as currency, ifnull(sum(UK_Seeker_Pinterest),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  union
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'CA' as country, 'EUR' as currency, ifnull(sum(CA_Seeker_Pinterest),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  union
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'AU' as country, 'EUR' as currency, ifnull(sum(AU_Seeker_Pinterest),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  ) social_spend
+group by 1,2,3,4,5,6,7,8
+---------- SOCIAL SPEND
 
--- FACEBOOK
-  select distinct
-    d.year, d.month, d.week_start_date, d.date,
-    initcap(campaign_Type) as role, 'Social' as channel,  
-    case when upper(country) = 'EN' then 'CA' 
-         when upper(country) = '_'  then 'AU' 
-         when upper(country) = 'VE'  then 'DE' 
-      else upper(country) end as country,    
-    fb.currency,
-    ifnull(sum(spend),0) as spend_domestic_currency
-  from intl.DW_F_FACEBOOK_SPEND_INTL fb
-    join reporting.DW_D_DATE d on date(date_start) = d.date
-  where d.year >= year(now())-1
-    and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8
-  
-union
-
--- QUALITY CLICK (Seekers) + PUTZFRAU AGENTUR (DE Seekers HK - partnerid = '469')
+union 
+---------- AFFILIATE SPEND
+  select distinct 
+    year, month, week_start_date, date,
+    role, country, currency, 'Affiliate' as channel,
+    sum(spend_domestic_currency) as spend_domestic_currency
+  from (
+     -- QUALITY CLICK (Seekers) + PUTZFRAU AGENTUR (DE Seekers HK - partnerid = '469')
     select distinct
         d.year, d.month, d.week_start_date, d.date,
-       'Seeker' as role, 'Affiliate' as channel,     
+       'Seeker' as role,      
         case when program in ('DE', 'AT', 'CH') then program
               when product like '%FR%' then 'FR'
               when product like '%BE_nl%' then 'BE'  
@@ -61,41 +91,31 @@ union
               when product like '%CA%' then 'CA'
          end as country, 
         'EUR' as currency,
-         sum(qc.commission) as spend
+         sum(qc.commission) as spend_domestic_currency
       from intl.quality_click_spend qc
         join reporting.DW_D_DATE d on date(day) = d.date
       where partnerid <> '435'
         and (lower(product) not like '%alltagshelfer%' or lower(product) not like '%provider%') -- Assigned default to seekers as discussed with Fabian
         and d.year >= year(now())-1
         and d.date < date(current_date)
-      group by 1,2,3,4,5,6,7,8
- 
-union
-
--- PUTZCHECKER (DE Seekers)
+      group by 1,2,3,4,5,6,7
+    union
+  -- PUTZCHECKER (DE Seekers)
   select 
     d.year, d.month, d.week_start_date, d.date,
-    'Seeker' as role, 'Affiliate' as channel,
+    'Seeker' as role,
     'DE' as country, 'EUR' as currency,
     ifnull((sum(clicks)*1.5),0) as spend_domestic_currency
   from intl.quality_click_cpc
     join reporting.DW_D_DATE d on date(day) = d.date
   where d.year >= year(now())-1
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8
-  
-union
-
--- TikTok (DE Seekers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Mibaby),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
-
-union
-
--- AWIN
+  group by 1,2,3,4,5,6,7
+  union
+  -- AWIN
   select distinct
     d.year, d.month, d.week_start_date, d.date,
-    case when aw.commission_group_code in ('REG_P','REGP') then 'Provider' else 'Seeker' end as role, 'Affiliate' as channel, 
+    case when aw.commission_group_code in ('REG_P','REGP') then 'Provider' else 'Seeker' end as role, 
     case when advertiser_id = '10557' then 'DE'
          when advertiser_id = '10709' then 'AT'   
          when advertiser_id = '45671' then 'UK' 
@@ -107,14 +127,12 @@ union
   where d.year >= year(now())-1
     and d.date < date(current_date)
     and lower(aw.commissionStatus) in ('approved', 'pending')
-	group by 1,2,3,4,5,6,7,8
-	
-union
-
--- MEINESTADT (DE Seekers)
+	group by 1,2,3,4,5,6,7
+  union
+  -- MEINESTADT (DE Seekers)
   select distinct
      d.year, d.month, d.week_start_date, d.date,
-     'Seeker' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency,
+     'Seeker' as role, 'DE' as country, 'EUR' as currency,
      ifnull(sum(case when spend.year = spend.current_year and spend.month = spend.current_month then ((spend)/current_days) else ((spend)/days_in_month) end),0) as spend_domestic_currency
   from (
     select distinct
@@ -140,57 +158,34 @@ union
     group by 1,2,3,4,5,6
   ) spend
     join reporting.DW_D_DATE d on spend.year = d.year and spend.month = d.month and d.year >= year(now())-1 and d.date < date(current_date)
-    group by 1,2,3,4,5,6,7,8 
-      
-union   
-
--- PINTEREST (DE, UK, CA + AU Seekers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Pinterest),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
-  union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as channel, 'UK' as country, 'EUR' as currency, ifnull(sum(UK_Seeker_Pinterest),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
-  union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as channel, 'CA' as country, 'EUR' as currency, ifnull(sum(CA_Seeker_Pinterest),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
-  union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Social' as channel, 'AU' as country, 'EUR' as currency, ifnull(sum(AU_Seeker_Pinterest),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
-  
-union
-
--- SPOTIFY (DE SEEKERS ONLY)
+    group by 1,2,3,4,5,6,7 
+    union
+  -- SPOTIFY (DE SEEKERS ONLY)
   select distinct
     d.year, d.month, d.week_start_date, d.date,
-    'Seeker' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency,
+    'Seeker' as role, 'DE' as country, 'EUR' as currency,
     ifnull(sum(spend),0) as spend_domestic_currency
   from intl.spotify_spend sy
   join reporting.DW_D_DATE d on date(sy.start_date) = d.date
   where d.year >= year(now())-1
     and d.date < date(current_date)
-	group by 1,2,3,4,5,6,7,8
-
-union
-
--- IMPACT (CA SEEKERS ONLY)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Affiliate' as channel, 'CA' as country, 'EUR' as currency, ifnull(sum(CA_OTHER_ONLINE),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8 
+	group by 1,2,3,4,5,6,7
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Affiliate' as channel, 'AU' as country, 'EUR' as currency, ifnull(sum(AU_OTHER_ONLINE),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8  
-  
-union
-
--- KLEINANZEIGEN (DE Seeker) *** Using DE_Seeker_Nebenan column in intl.DW_MARKETING_SPEND_INTL
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Nebenan),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
-  
-union
-
--- QUALITY CLICK (Providers)
+  -- IMPACT (CA SEEKERS ONLY)
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'CA' as country, 'EUR' as currency, ifnull(sum(CA_OTHER_ONLINE),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7 
+  union
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'AU' as country, 'EUR' as currency, ifnull(sum(AU_OTHER_ONLINE),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7  
+  union
+  -- KLEINANZEIGEN (DE Seeker) *** Using DE_Seeker_Nebenan column in intl.DW_MARKETING_SPEND_INTL
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Nebenan),0) as spend_domestic_currency
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  union
+  -- QUALITY CLICK (Providers)
     select distinct
         d.year, d.month, d.week_start_date, d.date,
-       'Provider' as role, 'Affiliate' as channel,      
+       'Provider' as role,     
         case when program in ('DE', 'AT', 'CH') then program
              when product like '%FR%' then 'FR'
              when product like '%BE_nl%' then 'BE'  
@@ -215,14 +210,12 @@ union
         and (lower(product) like '%alltagshelfer%' or lower(product) like '%provider%') 
         and d.year >= year(now())-1
         and d.date < date(current_date)
-      group by 1,2,3,4,5,6,7,8
-
-union 
-
--- RECRUITICS (Providers)
+      group by 1,2,3,4,5,6,7
+    union 
+   -- RECRUITICS (Providers)
   select distinct
     d.year, d.month, d.week_start_date, d.date, 
-    'Provider' as role, 'Affiliate' as channel,
+    'Provider' as role,
     case when rc.country in ('DE','') then 'DE' 
          when rc.country = 'GB' then 'UK'
         else rc.country end as country,    
@@ -233,44 +226,40 @@ union
   where lower(rc.source) not in ('xxx','jobg8','jobg8auto','jobtome')
     and d.year >= year(now())-1 
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8 
-  
-union
-
--- RECRUITICS FEE (DE Providers Only)
-select 
-  d.year, d.month, d.week_start_date, d.date,
-  'Provider' as role, 'Affiliate' as channel, 'DE' as country, currency,
-  ifnull(sum(case when rc_fee.year = rc_fee.current_year and rc_fee.month = rc_fee.current_month then ((commission)/current_days) else ((commission)/days_in_month) end),0) as spend_domestic_currency
-from
-    (select 
-      year(rc.day) as year,
-      month(rc.day) as month,
-      month(current_date()-1) as current_month,
-      year(current_date()-1) as current_year,
-      date_part('day', last_day(rc.day)) as days_in_month,
-      date_part('day', current_date()-1) as current_days,
-      currency,
-      case when sum(spend) < '20000' then '2500'
-           when sum(spend) between '20000' and '30000' then '3000'
-           when sum(spend) between '30000' and '50000' then '3600'
-           when sum(spend) between '50000' and '80000' then '5000'
-           when sum(spend) > '80000' then '8000'
-        else '3500' end as commission 
-    from intl.recruitics_spend_intl rc
-    where year(rc.day) >= year(now())-1 
-      and date(rc.day) < date(current_date)
-      and lower(source) not in ('xxx','jobg8','jobg8auto','jobtome')
-    group by 1,2,3,4,5,6,7) rc_fee
-join reporting.DW_D_DATE d on rc_fee.year = d.year and rc_fee.month = d.month and d.year >= year(now())-1 and d.date < date(current_date)
-group by 1,2,3,4,5,6,7,8
-
-union
-
--- STUDENT JOB (Providers)
+  group by 1,2,3,4,5,6,7
+  union
+  -- RECRUITICS FEE (DE Providers Only)
+  select 
+    d.year, d.month, d.week_start_date, d.date,
+    'Provider' as role, 'DE' as country, currency,
+    ifnull(sum(case when rc_fee.year = rc_fee.current_year and rc_fee.month = rc_fee.current_month then ((commission)/current_days) else ((commission)/days_in_month) end),0) as spend_domestic_currency
+  from
+      (select 
+        year(rc.day) as year,
+        month(rc.day) as month,
+        month(current_date()-1) as current_month,
+        year(current_date()-1) as current_year,
+        date_part('day', last_day(rc.day)) as days_in_month,
+        date_part('day', current_date()-1) as current_days,
+        currency,
+        case when sum(spend) < '20000' then '2500'
+             when sum(spend) between '20000' and '30000' then '3000'
+             when sum(spend) between '30000' and '50000' then '3600'
+             when sum(spend) between '50000' and '80000' then '5000'
+             when sum(spend) > '80000' then '8000'
+          else '3500' end as commission 
+      from intl.recruitics_spend_intl rc
+      where year(rc.day) >= year(now())-1 
+        and date(rc.day) < date(current_date)
+        and lower(source) not in ('xxx','jobg8','jobg8auto','jobtome')
+      group by 1,2,3,4,5,6,7) rc_fee
+  join reporting.DW_D_DATE d on rc_fee.year = d.year and rc_fee.month = d.month and d.year >= year(now())-1 and d.date < date(current_date)
+  group by 1,2,3,4,5,6,7
+  union
+  -- STUDENT JOB (Providers)
   select distinct
     d.year, d.month, d.week_start_date, d.date,
-    'Provider' as role, 'Affiliate' as channel, 
+    'Provider' as role, 
     case when program in ('DE', 'AT', 'CH') then program
          when product like '%FR%' then 'FR'
          when product like '%BE_nl%' then 'BE'  
@@ -304,14 +293,12 @@ union
     and (product like '%Alltagshelfer%' or product like '%Provider%')
     and d.year >= year(now())-1  
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8
-
-union 
-
--- APP JOBS (Providers)
+  group by 1,2,3,4,5,6,7
+  union 
+  -- APP JOBS (Providers)
   select distinct
     d.year, d.month, d.week_start_date, d.date,
-    'Provider' as role, 'Affiliate' as channel, 
+    'Provider' as role,  
     case when country = 'Germany' then 'DE'
          when country = 'Canada' then 'CA' 
        end as country,   
@@ -321,46 +308,38 @@ union
     join reporting.DW_D_DATE d on date(day) = d.date
   where d.year >= year(now())-1 
     and d.date < date(current_date)
-  group by 1,2,3,4,5,6,7,8
-  
-union
-
--- APPCAST (DE + UK Providers) 
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8 
+  group by 1,2,3,4,5,6,7  
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8 
-
-union 
-
--- MY PERFECT JOB (DE Providers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Provider_Myperfectjob),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8 
-  
-union
-
--- JOB LIFT (DE Providers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8 
-  
-union
-
--- ALLESKRALLE (DACH Providers)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
+  -- APPCAST (DE + UK Providers) 
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(de_provider_appcast),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'AT' as country, 'EUR' as currency, ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8 
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'UK' as country, 'GBP' as currency, ifnull(sum(uk_provider_appcast),0) as spend_domestic_currency 
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7 
+  union 
+  -- MY PERFECT JOB (DE Providers)
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Provider_Myperfectjob),0) as spend_domestic_currency
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7 
   union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'CH' as country, 'EUR' as currency, ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8 
-  
-union
-
--- KLEINANZEIGEN (DE Providers) *** Using DE_Provider_Nebenan column in intl.DW_MARKETING_SPEND_INTL
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'Affiliate' as channel, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Provider_Nebenan),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7,8
+  -- JOB LIFT (DE Providers)
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_PROVIDER_JOBLIFT),0) as spend_domestic_currency
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7 
+  union
+  -- ALLESKRALLE (DACH Providers)
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_PROVIDER_ALLESKRALLE),0) as spend_domestic_currency
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  union
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'AT' as country, 'EUR' as currency, ifnull(sum(AT_PROVIDER_ALLESKRALLE),0) as spend_domestic_currency
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7 
+  union
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'CH' as country, 'EUR' as currency, ifnull(sum(CH_PROVIDER_ALLESKRALLE),0) as spend_domestic_currency
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7 
+  union
+  -- KLEINANZEIGEN (DE Providers) *** Using DE_Provider_Nebenan column in intl.DW_MARKETING_SPEND_INTL
+  select distinct d.year, d.month, d.week_start_date, d.date, 'Provider' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Provider_Nebenan),0) as spend_domestic_currency
+  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
+  ) social_spend
+group by 1,2,3,4,5,6,7,8
 ),
 
 -- THIS IS FOR THE FIXED CURRENT USD FX RATES
