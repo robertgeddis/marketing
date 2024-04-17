@@ -171,17 +171,6 @@ union
     and d.date < date(current_date)
 	group by 1,2,3,4,5,6,7
   union
-  -- IMPACT (CA SEEKERS ONLY)
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'CA' as country, 'EUR' as currency, ifnull(sum(CA_OTHER_ONLINE),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7 
-  union
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'AU' as country, 'EUR' as currency, ifnull(sum(AU_OTHER_ONLINE),0) as spend_domestic_currency 
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on spend_date = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7  
-  union
-  -- KLEINANZEIGEN (DE Seeker) *** Using DE_Seeker_Nebenan column in intl.DW_MARKETING_SPEND_INTL
-  select distinct d.year, d.month, d.week_start_date, d.date, 'Seeker' as role, 'DE' as country, 'EUR' as currency, ifnull(sum(DE_Seeker_Nebenan),0) as spend_domestic_currency
-  from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
-  union
   -- QUALITY CLICK (Providers)
     select distinct
         d.year, d.month, d.week_start_date, d.date,
@@ -340,6 +329,7 @@ union
   from intl.DW_MARKETING_SPEND_INTL join reporting.DW_D_DATE d on date(spend_date) = d.date where d.year >= year(now())-1 and d.date < date(current_date) group by 1,2,3,4,5,6,7
   ) affiliate_spend
 group by 1,2,3,4,5,6,7,8
+
 ),
 
 -- THIS IS FOR THE FIXED CURRENT USD FX RATES
@@ -367,34 +357,36 @@ visits as (
            when lower(v.rxcampaign) = 'sem' and (lower(rxservice) in ('pc', 'petcare') or lower(rxservice) like '%petcare%') then 'SEM PC' 
            when lower(v.rxcampaign) = 'sem' and (lower(rxservice) not in ('cc','c','childcare','','hk','homecare','housekeeping','ho','pc', 'petcare') or 
                                                 lower(rxservice) not like '%child%' or lower(rxservice) like '%homecare%' or lower(rxservice) like '%petcare%') then 'SEM OV' 
-           when lower(v.rxsite) in ('gdn', 'youtube') then 'Other'
-           when lower(v.rxsite) in ('facebook', 'pinterest', 'tiktok') then 'Social'
-        else 'Affiliate' end as channel,
+           when lower(v.rxcampaign) = 'online' and lower(v.rxsite) in ('gdn', 'youtube') then 'Other'
+           when lower(v.rxcampaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(v.rxsite) in ('facebook', 'pinterest', 'tiktok') then 'Social'
+           when lower(v.rxcampaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(v.rxsite) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
+        end as channel,
       upper(v.countrycode) as country, 
       count(distinct visitorid) as visits                                                         
     from intl.hive_visit v 
     join reporting.DW_D_DATE d on date(startDate) = d.date and d.year >= year(now())-1 and d.date < date(current_date)
-    where lower(v.rxcampaign) in ('sem', 'online', 'affiliate', 'influencer', 'p_uk_sem') 
+    where lower(v.rxcampaign) in ('sem', 'online', 'nline', 'affiliate', 'influencer', 'p_uk_sem') 
       and (v.memberid is null or v.signup = true)
     group by 1,2,3,4,5,6,7
 ),
 
 basics as (
-   select
+    select
       d.year, d.month, d.week_start_date, d.date,
       case when m.role is null then 'Seeker' else initcap(m.role) end as role, 
       case when lower(m.campaign) = 'sem' and (m.vertical is null or m.vertical = '' or lower(m.vertical) = 'childcare') then 'SEM CC' 
            when lower(m.campaign) = 'sem' and lower(m.vertical) in ('homecare', 'housekeeping') then 'SEM HK' 
            when lower(m.campaign) = 'sem' and lower(m.vertical) = 'petcare' then 'SEM PC' 
            when lower(m.campaign) = 'sem' and (lower(m.vertical) not in ('childcare', 'homecare', 'housekeeping', 'petcare') or m.vertical is not null or m.vertical <> '') then 'SEM OV' 
-           when lower(m.site) in ('gdn', 'youtube') then 'Other'
-           when lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
-        else 'Affiliate' end as channel,
+           when lower(m.campaign) = 'online' and lower(m.site) in ('gdn', 'youtube') then 'Other'
+           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
+           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
+        end as channel,
       upper(m.countrycode) as country,
       count(distinct m.memberid) as basics  
     from intl.hive_member m   
     join reporting.DW_D_DATE d on date(m.dateMemberSignup) = d.date and d.year >= year(now())-1 and d.date < date(current_date)
-    where lower(m.campaign) in ('sem', 'online', 'affiliate', 'influencer', 'p_uk_sem') 
+    where lower(m.campaign) in ('sem', 'online', 'nline', 'affiliate', 'influencer', 'p_uk_sem')  
       and m.IsInternalAccount = 'false'
       and m.closedforfraud = 'false'
       and lower(m.audience) = lower(m.role)
@@ -402,16 +394,17 @@ basics as (
 ),
 
 premiums as (
-   select
+    select
       d.year, d.month, d.week_start_date, d.date,
       case when m.role is null then 'Seeker' else initcap(m.role) end as role, 
       case when lower(m.campaign) = 'sem' and (m.vertical is null or m.vertical = '' or lower(m.vertical) = 'childcare') then 'SEM CC' 
            when lower(m.campaign) = 'sem' and lower(m.vertical) in ('homecare', 'housekeeping') then 'SEM HK' 
            when lower(m.campaign) = 'sem' and lower(m.vertical) = 'petcare' then 'SEM PC' 
            when lower(m.campaign) = 'sem' and (lower(m.vertical) not in ('childcare', 'homecare', 'housekeeping', 'petcare') or m.vertical is not null or m.vertical <> '') then 'SEM OV' 
-           when lower(m.site) in ('gdn', 'youtube') then 'Other'
-           when lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
-        else 'Affiliate' end as channel,
+           when lower(m.campaign) = 'online' and lower(m.site) in ('gdn', 'youtube') then 'Other'
+           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
+           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
+        end as channel,
      upper(m.countrycode) as country,
      count(distinct sp.subscriptionId) as premiums,
      count(distinct case when date(sp.subscriptionDateCreated) = date(m.dateProfileComplete) then sp.subscriptionId end) as day1,
@@ -428,7 +421,7 @@ premiums as (
       and m.IsInternalAccount = 'false'
       and m.closedforfraud = 'false'
       and lower(m.audience) = lower(m.role)
-      and lower(m.campaign) in ('sem', 'online', 'affiliate', 'influencer', 'p_uk_sem')
+      and lower(m.campaign) in ('sem', 'online', 'nline', 'affiliate', 'influencer', 'p_uk_sem')  
   group by 1,2,3,4,5,6,7
 )
 
