@@ -375,14 +375,14 @@ visits as (
            when lower(v.rxcampaign) = 'sem' and (lower(rxservice) not in ('cc','c','childcare','','hk','homecare','housekeeping','ho','pc', 'petcare') or 
                                                 lower(rxservice) not like '%child%' or lower(rxservice) like '%homecare%' or lower(rxservice) like '%petcare%') then 'SEM OV' 
            when lower(v.rxcampaign) = 'online' and lower(v.rxsite) in ('gdn', 'youtube') then 'Other'
-           when lower(v.rxcampaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(v.rxsite) in ('facebook', 'pinterest', 'tiktok') then 'Social'
-           when lower(v.rxcampaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(v.rxsite) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
+           when lower(v.rxcampaign) in ('online', 'affiliate', 'influencer') and lower(v.rxsite) in ('facebook', 'pinterest', 'tiktok') then 'Social'
+           when lower(v.rxcampaign) in ('online', 'affiliate', 'influencer') and lower(v.rxsite) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
         end as channel,
       upper(v.countrycode) as country, 
       count(distinct visitorid) as visits                                                         
     from intl.hive_visit v 
     join reporting.DW_D_DATE d on date(startDate) = d.date and d.year >= year(now())-1 and d.date < date(current_date)
-    where lower(v.rxcampaign) in ('sem', 'online', 'nline', 'affiliate', 'influencer', 'p_uk_sem') 
+    where lower(v.rxcampaign) in ('sem', 'online', 'affiliate', 'influencer') 
       and (v.memberid is null or v.signup = true)
     group by 1,2,3,4,5,6,7
 ),
@@ -396,14 +396,14 @@ basics as (
            when lower(m.campaign) = 'sem' and lower(m.vertical) = 'petcare' then 'SEM PC' 
            when lower(m.campaign) = 'sem' and (lower(m.vertical) not in ('childcare', 'homecare', 'housekeeping', 'petcare') or m.vertical is not null or m.vertical <> '') then 'SEM OV' 
            when lower(m.campaign) = 'online' and lower(m.site) in ('gdn', 'youtube') then 'Other'
-           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
-           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
+           when lower(m.campaign) in ('online', 'affiliate', 'influencer') and lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
+           when lower(m.campaign) in ('online', 'affiliate', 'influencer') and lower(m.site) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
         end as channel,
       upper(m.countrycode) as country,
       count(distinct m.memberid) as basics  
     from intl.hive_member m   
     join reporting.DW_D_DATE d on date(m.dateMemberSignup) = d.date and d.year >= year(now())-1 and d.date < date(current_date)
-    where lower(m.campaign) in ('sem', 'online', 'nline', 'affiliate', 'influencer', 'p_uk_sem')  
+    where lower(m.campaign) in ('sem', 'online', 'affiliate', 'influencer')  
       and m.IsInternalAccount = 'false'
       and m.closedforfraud = 'false'
       and lower(m.audience) = lower(m.role)
@@ -419,8 +419,8 @@ premiums as (
            when lower(m.campaign) = 'sem' and lower(m.vertical) = 'petcare' then 'SEM PC' 
            when lower(m.campaign) = 'sem' and (lower(m.vertical) not in ('childcare', 'homecare', 'housekeeping', 'petcare') or m.vertical is not null or m.vertical <> '') then 'SEM OV' 
            when lower(m.campaign) = 'online' and lower(m.site) in ('gdn', 'youtube') then 'Other'
-           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
-           when lower(m.campaign) in ('online', 'nline', 'affiliate', 'influencer') and lower(m.site) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
+           when lower(m.campaign) in ('online', 'affiliate', 'influencer') and lower(m.site) in ('facebook', 'pinterest', 'tiktok') then 'Social'
+           when lower(m.campaign) in ('online', 'affiliate', 'influencer') and lower(m.site) not in ('facebook', 'pinterest', 'tiktok') then 'Affiliate'
         end as channel,
      upper(m.countrycode) as country,
      count(distinct sp.subscriptionId) as premiums,
@@ -438,7 +438,7 @@ premiums as (
       and m.IsInternalAccount = 'false'
       and m.closedforfraud = 'false'
       and lower(m.audience) = lower(m.role)
-      and lower(m.campaign) in ('sem', 'online', 'nline', 'affiliate', 'influencer', 'p_uk_sem')  
+      and lower(m.campaign) in ('sem', 'online', 'affiliate', 'influencer')  
   group by 1,2,3,4,5,6,7
 )
 
