@@ -1,0 +1,34 @@
+---------- Job / App every x seconds
+select
+  year(date_created) as year,
+  country,
+  'Apps' as category,
+  avg(seconds_between_each) as seconds_between_each 
+from
+  (select 
+    upper(country_code) as country,
+    id as app, 
+    date_created,
+    datediff(second, lag(date_created) over (order by date_created), date_created) as seconds_between_each
+  from intl.job_application
+  where year(date_created) >= year(now())-1) abc
+group by 1,2,3
+
+union
+
+select
+  year(date_created) as year,
+  country,
+  'Jobs' as category,
+  avg(seconds_between_each) as seconds_between_each 
+from
+  (select 
+    upper(country_code) as country,
+    id as app, 
+    date_created,
+    datediff(second, lag(date_created) over (order by date_created), date_created) as seconds_between_each
+  from intl.job
+  where search_status = 'Approved'
+    and year(date_created) >= year(now())-1) abc
+group by 1,2,3
+---------- Job / App every x seconds
