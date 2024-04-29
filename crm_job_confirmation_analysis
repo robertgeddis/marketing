@@ -1,0 +1,26 @@
+select
+  country,
+  member_id,
+  case when last_digit in ('0', '2') then 'Holdout'
+    else 'Test' end as cohort,
+  dateMemberSignup,
+  event_type,
+  event_datetime,
+  campaign_name
+from (
+    select 
+      em.country,
+      em.member_id,
+      right(cast(em.member_id as varchar),1) as last_digit,
+      mm.dateMemberSignup,
+      em.event_type,
+      em.event_datetime,
+      em.campaign_name
+  
+    from intl.DW_F_MEMBER_EMAIL_EVENT_DETAIL_INTL em
+    join intl.hive_member mm on em.member_id = mm.memberid and em.country = mm.countrycode 
+          and case when em.event_type = 'Sent' then datediff(hour, mm.dateMemberSignup, em.event_datetime) <= 24 end  
+    where 1
+      and em.event_type in ('Sent','Open','Click Through','Opt Out','Web Alerts Opt Out','Web Emails Opt Out','Web Newsletter Opt Out') 
+      and em.event_datetime >= '2024-04-23'
+      and em.country in ('de', 'at', 'ch', 'uk', 'ca', 'au', 'nz', 'ie') ) comb
