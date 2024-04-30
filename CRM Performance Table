@@ -71,7 +71,6 @@ create view analytics.vw_INTL_CRM_Performance as
 with iterable_data as (
 /*ITERABLE DATA*/
 select e.country, date(e.event_datetime) as date, e.campaign_name, e.campaign_id
-  -- Based on top domains used
   ,case when m.role is null then 'Seeker' else initcap(m.role) end as member_type
   ,case 
     when m.vertical = 'homeCare' then 'Housekeeping' 
