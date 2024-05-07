@@ -1,0 +1,31 @@
+--- SPEND
+select distinct 
+  vertical, 
+  ad_name,
+   case when vertical = 'other' and ad_name like '%CC%' then 'CC'
+        when vertical = 'other' and ad_name like '%HK%' then 'HK'
+        when vertical = 'other' and ad_name like '%PC%' then 'PC'
+        when vertical = 'HouseKeeping' then 'HK'
+        when vertical = 'PetCare' then 'PC'  
+        when vertical = 'Child Care' then 'CC' 
+        when vertical = 'Turtoring' then 'TT'
+     else 'Brand' end as vertical
+  
+   from intl.DW_F_FACEBOOK_SPEND_INTL fbs
+   where year(fbs.date_start) >= year(current_date())-2
+         and date(fbs.date_start) < date(current_date)
+
+--- SIGNUPS
+select distinct service, vertical, campaignname, creativeversion,
+ case when lower(m.service) = 'all' then 'Brand'
+      when (lower(m.vertical) = 'childcare' or lower(m.service) like '%cc%') then 'CC'
+      when (lower(m.vertical) in ('homecare','housekeeping') or lower(m.service) like '%hk%') then 'HK'
+      when (lower(m.vertical) = 'petcare' or lower(m.service) like '%pc%') then 'PC'
+      when (lower(m.vertical) = 'tutoring' or lower(m.service) like '%tt%') then 'TT' 
+   else 'Brand' end as vertical
+  from intl.hive_member m
+  where m.IsInternalAccount = 'false'
+    and lower(m.campaign) = 'online' 
+    and lower(m.site) = 'facebook' 
+    and year(m.dateMemberSignup) >= year(current_date())-2
+    and date(m.dateMemberSignup) < date(current_date)
