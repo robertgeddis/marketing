@@ -1,0 +1,25 @@
+select distinct
+  date(v.startDate) as date,
+  v.countrycode,
+  lower(rxcampaign) as campaign,
+  lower(rxsite) as site,
+  lower(rxaudience) as audience,
+  case when lower(v.entryurl) like '%%2flp%2%' then 'Instapage' else 'LPC' end as page_type,
+  count(distinct v.visitorid) as visits,
+  count(distinct su.memberid) as basics
+  
+from intl.hive_visit v 
+  left join intl.hive_event su    on v.countrycode = su.countrycode and v.visitorid = su.visitorid and su.datecreated > v.startDate
+                                  and su.name in ('Signup', 'SeekerSignup', 'ProviderSignup')  
+where v.year >= 2023
+  and lower(v.rxcampaign) in ('sem', 'online', 'affiliate', 'influencer') 
+  and lower(v.rxsite) not like 'careus%' 
+  and (v.memberid is null or v.signup = true)
+  and regexp_not_ilike(v.entryurl, 'unternehmen-|about-us|om-os|acerca-de-nosotros|tietoa-meista|a-propos|over-ons|om-oss|join-now|login|my-account|ueber-uns|-faq?')
+  and regexp_not_ilike(v.entryurl, 'barnepige-loen|stundenlohn-babysitter|babysitting-rates|sueldo-canguros|lastenhoitajan-palkka|tarif-baby-sitting|oppas-tarief|barnepass-lonn|barnvakt-lon')
+  and regexp_not_ilike(v.entryurl, 'rengoeringsassistent-loen|stundenlohn-putzfrau|housekeeping-rates|sueldo-empleados-del-hogar|siivoojan-palkka|tarif-femme-de-menage|tarief-huishoudelijke-hulp|vaskehjelp-lonnskalkulator|stadare-lon')
+  and regexp_not_ilike(v.entryurl, 'dyrepasser-loen|stundenlohn-tiersitter|pet-sitting-rates|sueldo-cuidadores-de-mascotas|elaintenhoitajan-palkka|ttarif-garde-animaux|tarif-petsitter|dierenzorg-tarief|dyrepasser-lonn|djurpassning-lon')
+  and regexp_not_ilike(v.entryurl, 'stundenlohn-nachhilfe|tutor-rates|sueldo-profesores-particulares|tarif-cours-particuliers|leksehjelp-lonn')
+  and regexp_not_ilike(v.entryurl, 'sicherheitsbereich|safety-centre|centre-de-securite|sikkerhed|centro-de-seguridad|turvallisuus|veiligheid|sikkerhetssenter|sakerhet')
+  
+group by 1,2,3,4,5,6
