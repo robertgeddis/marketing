@@ -1,5 +1,35 @@
-select count(*)
+select --count(*)
 
+  sum(sends) as sends,
+  sum(opens) as opens,
+  sum(clicks) as clicks,
+  sum(softbounced) as softbounced,
+  sum(optouts) as optouts,
+  sum(upgrades) as upgrades,
+  sum(day1Upgrades) as day1Upgrades,
+  sum(daynUpgrades) as daynUpgrades,
+  sum(reUpgrades) as reUpgrades,
+  sum(one_month_upgrades) as one_month_upgrades,
+  sum(three_month_upgrades) as three_month_upgrades,
+  sum(three_month_upgrades) as six_month_upgrades,
+  sum(three_month_upgrades) as twelve_month_upgrades,  
+  sum(upgradeswPromo) as upgradeswPromo,
+  sum(downgradeReq) as downgradeReq,
+  sum(manualApps) as manualApps,
+  sum(profilesCreated) as profilesCreated,
+  sum(profilesReactivated) as profilesReactivated,
+  sum(jobsPosted) as jobsPosted,
+  sum(msgBookmark) as msgBookmark,
+  sum(msgPersonal) as msgPersonal,
+  sum(photoMembers) as photoMembers,
+  sum(photoMembersApproved) as photoMembersApproved,
+  sum(reviewsSubmitted) as reviewsSubmitted,
+  sum(reviewsApproved) as reviewsApproved,
+  sum(verificationsReq) as verificationsReq,
+  sum(verificationsSuccess) as verificationsSuccess,
+  sum(verificationsVerifiedTotal) as verificationsVerifiedTotal,
+  sum(profilePreviewed) as profilePreviewed,
+  sum(visitors) as visitors
   
 
 
@@ -35,8 +65,8 @@ from intl.DW_F_MEMBER_EMAIL_EVENT_DETAIL_INTL e
   join intl.hive_member m on m.countrycode = e.country and m.memberid = e.member_id and m.IsInternalAccount is not true and m.closedforfraud is not true
 where e.event_type in ('Sent','Open','Click Through','Soft Bounce','Opt Out')
   and date(e.event_datetime) <> current_date() 
-  --and year(e.event_datetime) = 2023 
-  and year(e.event_datetime) >= year(now())-1  
+  and year(e.event_datetime) = 2023 
+  --and year(e.event_datetime) >= year(now())-1  
 group by 1,2,3,4,5,6,7,8
 ), 
 
@@ -98,22 +128,22 @@ from intl.hive_event e
   --Photo Approval
   left join intl.hive_event img on img.countrycode = e.countrycode and img.memberid = e.memberid and img.datecreated >= e.datecreated
     and img.name in ('Photo') and img.photoaction = 'Approve' and e.photoid = img.photoid
-    and img.year >= year(now())-1
+    --and img.year >= year(now())-1
     and date(img.datecreated) <> current_date()
-    --and img.year = 2023
+    and img.year = 2023
   --Review Approval
   left join intl.hive_event rev on rev.countrycode = e.countrycode and rev.memberid = e.memberid and rev.datecreated >= e.datecreated
     and rev.name in ('ReviewApproved') and e.reviewid = rev.reviewid
-    and rev.year >= year(now())-1
+    --and rev.year >= year(now())-1
     and date(rev.datecreated) <> current_date()
-    --and rev.year = 2023
+    and rev.year = 2023
   --Email verifications
   left join intl.hive_event ver on ver.countrycode = e.countrycode and ver.memberid = e.memberid and ver.datecreated >= e.datecreated 
     and e.name = ver.name and e.action = 'initiate'
     and ver.name in ('Verification') and ver.entitytype = 'Email' and ver.action = 'complete' and ver.statusvalue = 'success'
-    and ver.year >= year(now())-1
+    --and ver.year >= year(now())-1
     and date(ver.datecreated) <> current_date()
-    --and ver.year = 2023
+    and ver.year = 2023
 where 
   (
     (e.name = 'Upgrade') or 
@@ -136,9 +166,9 @@ where
   and e.campaign = 'Email' 
   -- Events have to have a campaignid
   and concat(e.campaignname, e.adgroupname) <> '' 
-  and e.year >= year(now())-1 
+  --and e.year >= year(now())-1 
   and date(e.datecreated) <> current_date()
-  --and e.year = 2023
+  and e.year = 2023
 group by 1,2,3,4,5,6,7
 /*END OF EVENT DATA*/
 ), 
@@ -166,12 +196,12 @@ select
 from intl.hive_visit v
   join intl.hive_member m on m.memberid = v.memberid and m.countrycode = v.countrycode and m.IsInternalAccount is not true and m.closedforfraud is not true
 where v.memberid is not null
-  and v.year >= year(NOW())-1
+  --and v.year >= year(NOW())-1
   and date(v.startdate) <> date(current_date)
   and v.memberid is not null
   and lower(v.rxcampaign) = 'email'
   and concat(v.rxcampaignname, v.rxadgroupname) <> ''
-  --and v.year = 2023
+  and v.year = 2023
 group by 1,2,3,4,5,6,7
 /*END OF VISIT DATA*/
 )
@@ -233,8 +263,9 @@ group by 1,2,3,4,5,6,7
       select distinct country, campaign_name, campaign_id, date(event_datetime) as date
       from intl.DW_F_MEMBER_EMAIL_EVENT_DETAIL_INTL e
       where e.event_type in ('Sent','Open','Click Through','Soft Bounce','Opt Out')
-        and year(e.event_datetime) >= year(now())-1
-        --and year(e.event_datetime) = 2023
+        --and year(e.event_datetime) >= year(now())-1
+        and year(e.event_datetime) = 2023
     ) e on e.country = t.countrycode and e.campaign_id = t.campaign_id and e.date = t.date
     
 ) abc
+
