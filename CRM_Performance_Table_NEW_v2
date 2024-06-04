@@ -1,41 +1,77 @@
-select --count(*)
+-- This code is sourcing the intl.INTL_CRM_Performance table. Only last 2 weeks of data is overwritten, date prior to this is hardcoded. This means if we want to add a column e.g. or change a logic we need help from data services to overwrite historically or
+-- push the data in month by month or quarter by quarter depending on what makes sense data volume-wise
+-- 
 
-  sum(sends) as sends,
-  sum(opens) as opens,
-  sum(clicks) as clicks,
-  sum(softbounced) as softbounced,
-  sum(optouts) as optouts,
-  sum(upgrades) as upgrades,
-  sum(day1Upgrades) as day1Upgrades,
-  sum(daynUpgrades) as daynUpgrades,
-  sum(reUpgrades) as reUpgrades,
-  sum(one_month_upgrades) as one_month_upgrades,
-  sum(three_month_upgrades) as three_month_upgrades,
-  sum(three_month_upgrades) as six_month_upgrades,
-  sum(three_month_upgrades) as twelve_month_upgrades,  
-  sum(upgradeswPromo) as upgradeswPromo,
-  sum(downgradeReq) as downgradeReq,
-  sum(manualApps) as manualApps,
-  sum(profilesCreated) as profilesCreated,
-  sum(profilesReactivated) as profilesReactivated,
-  sum(jobsPosted) as jobsPosted,
-  sum(msgBookmark) as msgBookmark,
-  sum(msgPersonal) as msgPersonal,
-  sum(photoMembers) as photoMembers,
-  sum(photoMembersApproved) as photoMembersApproved,
-  sum(reviewsSubmitted) as reviewsSubmitted,
-  sum(reviewsApproved) as reviewsApproved,
-  sum(verificationsReq) as verificationsReq,
-  sum(verificationsSuccess) as verificationsSuccess,
-  sum(verificationsVerifiedTotal) as verificationsVerifiedTotal,
-  sum(profilePreviewed) as profilePreviewed,
-  sum(visitors) as visitors
-  
+/*View and table creation*/
+/*------------------*/
+/*   Create TABLE   */
+/*------------------*/
+DROP TABLE if exists inprogress_intl.INTL_CRM_Performance;
+TRUNCATE TABLE inprogress_intl.INTL_CRM_Performance;
 
+CREATE TABLE inprogress_intl.INTL_CRM_Performance (
+   campaign_name VARCHAR(1000)
+  ,countrycode VARCHAR(5)
+  ,date DATE
+  ,campaign_id VARCHAR (50)
+  ,member_type VARCHAR(20)
+  ,vertical VARCHAR(15)
+  ,channel VARCHAR (50)
+  ,member_status VARCHAR(20)
+  ,sends INT
+  ,opens INT
+  ,clicks INT
+  ,softbounced INT
+  ,optouts INT
+  ,upgrades INT
+  ,day1Upgrades INT
+  ,daynUpgrades INT
+  ,reUpgrades INT
+  ,one_month_upgrades INT
+  ,three_month_upgrades INT
+  ,six_month_upgrades INT
+  ,twelve_month_upgrades INT
+  ,upgradeswPromo INT
+  ,downgradeReq INT
+  ,manualApps INT
+  ,profilesCreated INT
+  ,profilesReactivated INT
+  ,jobsPosted INT
+  ,msgBookmark INT
+  ,msgPersonal INT
+  ,photoMembers INT
+  ,photoMembersApproved INT
+  ,reviewsSubmitted INT
+  ,reviewsApproved INT
+  ,verificationsReq INT
+  ,verificationsSuccess INT
+  ,verificationsVerifiedTotal INT
+  ,profilePreviewed INT
+  ,visitors INT
+);
 
-from
+INSERT INTO inprogress_intl.INTL_CRM_Performance -- There is a process with data services pushing the content of this table into the analytics_prod schema? No longer maintained
+-- <query>
+  select * from analytics.vw_INTL_CRM_Performance
+-- </query>	
+;
+commit;
+GRANT ALL on inprogress_intl.INTL_CRM_Performance to reporting_ro, intl_admin_prod, 'rajasekhar.mandalapu'  WITH GRANT OPTION;
 
-(
+-- 2m41, 27486 rows
+select * from analytics.vw_INTL_CRM_Performance;
+select year(date), month(date), count(*) from inprogress_intl.INTL_CRM_Performance group by 1,2 order by 1,2;
+describe inprogress_intl.INTL_CRM_Performance;
+
+/*------------------*/
+/*   Create VIEW    */
+/*------------------*/
+drop view if exists analytics.vw_INTL_CRM_Performance;
+
+grant SELECT on analytics.vw_INTL_CRM_Performance to reporting_ro, analytics_team, mponnur;
+
+create view analytics.vw_INTL_CRM_Performance as
+-- <query>
 
 with iterable_data as (
 /*ITERABLE DATA*/
@@ -64,9 +100,8 @@ select e.country, date(e.event_datetime) as date, e.campaign_name, e.campaign_id
 from intl.DW_F_MEMBER_EMAIL_EVENT_DETAIL_INTL e 
   join intl.hive_member m on m.countrycode = e.country and m.memberid = e.member_id and m.IsInternalAccount is not true and m.closedforfraud is not true
 where e.event_type in ('Sent','Open','Click Through','Soft Bounce','Opt Out')
-  and date(e.event_datetime) <> current_date() 
-  and year(e.event_datetime) = 2023 
-  --and year(e.event_datetime) >= year(now())-1  
+  and date(e.event_datetime) < date(current_date) 
+  and year(e.event_datetime) >= year(now())-1  
 group by 1,2,3,4,5,6,7,8
 ), 
 
@@ -128,22 +163,19 @@ from intl.hive_event e
   --Photo Approval
   left join intl.hive_event img on img.countrycode = e.countrycode and img.memberid = e.memberid and img.datecreated >= e.datecreated
     and img.name in ('Photo') and img.photoaction = 'Approve' and e.photoid = img.photoid
-    --and img.year >= year(now())-1
-    and date(img.datecreated) <> current_date()
-    and img.year = 2023
+    and img.year >= year(now())-1
+    and date(img.datecreated) < date(current_date)
   --Review Approval
   left join intl.hive_event rev on rev.countrycode = e.countrycode and rev.memberid = e.memberid and rev.datecreated >= e.datecreated
     and rev.name in ('ReviewApproved') and e.reviewid = rev.reviewid
-    --and rev.year >= year(now())-1
-    and date(rev.datecreated) <> current_date()
-    and rev.year = 2023
+    and rev.year >= year(now())-1
+    and date(rev.datecreated) < date(current_date)
   --Email verifications
   left join intl.hive_event ver on ver.countrycode = e.countrycode and ver.memberid = e.memberid and ver.datecreated >= e.datecreated 
     and e.name = ver.name and e.action = 'initiate'
     and ver.name in ('Verification') and ver.entitytype = 'Email' and ver.action = 'complete' and ver.statusvalue = 'success'
-    --and ver.year >= year(now())-1
-    and date(ver.datecreated) <> current_date()
-    and ver.year = 2023
+    and ver.year >= year(now())-1
+    and date(ver.datecreated) < date(current_date)
 where 
   (
     (e.name = 'Upgrade') or 
@@ -166,9 +198,8 @@ where
   and e.campaign = 'Email' 
   -- Events have to have a campaignid
   and concat(e.campaignname, e.adgroupname) <> '' 
-  --and e.year >= year(now())-1 
-  and date(e.datecreated) <> current_date()
-  and e.year = 2023
+  and e.year >= year(now())-1 
+  and date(e.datecreated) < date(current_date)
 group by 1,2,3,4,5,6,7
 /*END OF EVENT DATA*/
 ), 
@@ -196,18 +227,18 @@ select
 from intl.hive_visit v
   join intl.hive_member m on m.memberid = v.memberid and m.countrycode = v.countrycode and m.IsInternalAccount is not true and m.closedforfraud is not true
 where v.memberid is not null
-  --and v.year >= year(NOW())-1
-  and date(v.startdate) <> date(current_date)
+  and v.year >= year(now())-1
+  and date(v.startdate) < date(current_date)
   and v.memberid is not null
   and lower(v.rxcampaign) = 'email'
   and concat(v.rxcampaignname, v.rxadgroupname) <> ''
-  and v.year = 2023
 group by 1,2,3,4,5,6,7
 /*END OF VISIT DATA*/
 )
 
 
-select e.campaign_name, countrycode, t.date, t.campaign_id, member_type, vertical, channel, member_status  
+select 
+  e.campaign_name, countrycode, t.date, t.campaign_id, member_type, vertical, channel, member_status  
   ,sends, opens, clicks, softbounced, optouts
   ,upgrades, day1Upgrades, daynUpgrades, reUpgrades, upgradeswPromo, one_month_upgrades, three_month_upgrades, six_month_upgrades, twelve_month_upgrades
   ,downgradeReq, manualApps, profilesCreated, profilesReactivated, jobsPosted
@@ -260,12 +291,28 @@ from event_data e
     and e.member_type = i.member_type and e.vertical = i.vertical and e.channel = i.channel and e.member_status = i.member_status
 group by 1,2,3,4,5,6,7
 ) t left join ( -- What was this left join doing again? Only iterable has campaign_name which is why we do this join.
-      select distinct country, campaign_name, campaign_id, date(event_datetime) as date
+      select distinct 
+      country, 
+       case when regexp_ilike(campaign_name, 'product|survey|coronavirus|meetup|warmup|uploadaphoto|jobharvesting|parttimejobs_launch') then 'Product'
+            when (regexp_ilike(campaign_name, 'welcome|welcomestream|onboarding') and regexp_not_ilike(campaign_name, 'product')) then 'Welcome Stream'
+            when regexp_ilike(campaign_name, 'content|cn|magazine') then 'Content'
+            when regexp_ilike(campaign_name, 'messagereceived_automaticapplication|autoappreceived') then 'AutoApp Received'
+            when (lower(campaign_name) like '%promo%' and lower(campaign_name) not like 'welcomeStream') then 'Promo'
+            when lower(campaign_name) like '%jobsnearyou%' then 'JobsNearYou'
+            when lower(campaign_name) like '%jobofdayalerttriggered_jobofday%' then 'JobOfDay'
+            when lower(campaign_name) like '%providernearyou%' then 'ProviderNearYou'
+            when lower(campaign_name) like '%messagereceived_jobapplication%' then 'JobApplication'
+            when lower(campaign_name) like '%messagereceived_newmessage%' then 'Message Received'
+            when lower(campaign_name) like '%autoappsent_autojobapplication%' then 'AutoApp Sent'
+            when lower(campaign_name) like '%cartabandoned%' then 'Abandoned Cart'
+            when lower(campaign_name) like '%abandonedratecard%' then 'Abandoned Rate Card'
+        else 'Other Trigger' end as campaign_name,
+      campaign_id, date(event_datetime) as date
       from intl.DW_F_MEMBER_EMAIL_EVENT_DETAIL_INTL e
       where e.event_type in ('Sent','Open','Click Through','Soft Bounce','Opt Out')
-        --and year(e.event_datetime) >= year(now())-1
-        and year(e.event_datetime) = 2023
+        and year(e.event_datetime) >= year(now())-1
+        and date(e.event_datetime) < date(current_date)
     ) e on e.country = t.countrycode and e.campaign_id = t.campaign_id and e.date = t.date
-    
-) abc
 
+-- </query>
+;
