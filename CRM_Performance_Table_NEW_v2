@@ -290,28 +290,11 @@ from event_data e
   full outer join iterable_data i on e.countrycode = i.country and e.date = i.date and e.campaign_id = i.campaign_id
     and e.member_type = i.member_type and e.vertical = i.vertical and e.channel = i.channel and e.member_status = i.member_status
 group by 1,2,3,4,5,6,7
-) t left join ( -- What was this left join doing again? Only iterable has campaign_name which is why we do this join.
-      select distinct 
-      country, 
-       case when regexp_ilike(campaign_name, 'product|survey|coronavirus|meetup|warmup|uploadaphoto|jobharvesting|parttimejobs_launch') then 'Product'
-            when (regexp_ilike(campaign_name, 'welcome|welcomestream|onboarding') and regexp_not_ilike(campaign_name, 'product')) then 'Welcome Stream'
-            when regexp_ilike(campaign_name, 'content|cn|magazine') then 'Content'
-            when regexp_ilike(campaign_name, 'messagereceived_automaticapplication|autoappreceived') then 'AutoApp Received'
-            when (lower(campaign_name) like '%promo%' and lower(campaign_name) not like 'welcomeStream') then 'Promo'
-            when lower(campaign_name) like '%jobsnearyou%' then 'JobsNearYou'
-            when lower(campaign_name) like '%jobofdayalerttriggered_jobofday%' then 'JobOfDay'
-            when lower(campaign_name) like '%providernearyou%' then 'ProviderNearYou'
-            when lower(campaign_name) like '%messagereceived_jobapplication%' then 'JobApplication'
-            when lower(campaign_name) like '%messagereceived_newmessage%' then 'Message Received'
-            when lower(campaign_name) like '%autoappsent_autojobapplication%' then 'AutoApp Sent'
-            when lower(campaign_name) like '%cartabandoned%' then 'Abandoned Cart'
-            when lower(campaign_name) like '%abandonedratecard%' then 'Abandoned Rate Card'
-        else 'Other Trigger' end as campaign_name,
-      campaign_id, date(event_datetime) as date
+) t  left join ( -- What was this left join doing again? Only iterable has campaign_name which is why we do this join.
+      select distinct country, campaign_name, campaign_id, date(event_datetime) as date
       from intl.DW_F_MEMBER_EMAIL_EVENT_DETAIL_INTL e
       where e.event_type in ('Sent','Open','Click Through','Soft Bounce','Opt Out')
-        and year(e.event_datetime) >= year(now())-1
-        and date(e.event_datetime) < date(current_date)
+        and year(e.event_datetime) >= year(now())-1 
     ) e on e.country = t.countrycode and e.campaign_id = t.campaign_id and e.date = t.date
 
 -- </query>
