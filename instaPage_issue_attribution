@@ -3,14 +3,16 @@ select distinct
   pv.visitorId, 
   pv.sessionid,
   pv.pageUrl as landing_page,
-  case when lower(pageUrl) like '%sem%' then 'SEM' 
-       when lower(pageUrl) like '%online%' then 'Online' 
-       when lower(pageUrl) like '%affiliate%' then 'Affiliate' 
+  case when lower(pageUrl) like '%rx=sem%' then 'SEM' 
+       when lower(pageUrl) like '%rx=online%' then 'Online' 
+       when lower(pageUrl) like '%rx=affiliate%' then 'Affiliate' 
     else 'SEM' end as campaign, 
   case when lower(pv.pageUrl) like '%qualityclick%' then 'QualityClick' 
-       when (split_part(pv.pageUrl,'|',2) is null or split_part(pv.pageUrl,'|',2) = '') then 'Google'
+       when split_part(pv.pageUrl,'|',2) = '' then 'Google'
     else split_part(pv.pageUrl,'|',2) end as site,
-  split_part(pv.pageUrl,'|',3) as audience,
+  case when (split_part(pv.pageUrl,'|',3) = '' and regexp_not_like(pv.pageUrl, '/jobs/|-jobs')) then 'Seeker' 
+       when (split_part(pv.pageUrl,'|',3) = '' and regexp_like(pv.pageUrl, '/jobs/|-jobs')) then 'Provider' 
+    else split_part(pv.pageUrl,'|',3) end as audience,
   split_part(pv.pageUrl,'|',4) as service,
   split_part(pv.pageUrl,'|',5) as creativeVersion,
   split_part(pv.pageUrl,'|',6) as keyword,
