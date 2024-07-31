@@ -6,8 +6,10 @@ select distinct
   case when lower(pageUrl) like '%sem%' then 'SEM' 
        when lower(pageUrl) like '%online%' then 'Online' 
        when lower(pageUrl) like '%affiliate%' then 'Affiliate' 
-    else null end as campaign, 
-  case when lower(pv.pageUrl) like '%qualityclick%' then 'QualityClick' else split_part(pv.pageUrl,'|',2) end as site,
+    else 'SEM' end as campaign, 
+  case when lower(pv.pageUrl) like '%qualityclick%' then 'QualityClick' 
+       when (split_part(pv.pageUrl,'|',2) is null or split_part(pv.pageUrl,'|',2) = '') then 'Google'
+    else split_part(pv.pageUrl,'|',2) end as site,
   split_part(pv.pageUrl,'|',3) as audience,
   split_part(pv.pageUrl,'|',4) as service,
   split_part(pv.pageUrl,'|',5) as creativeVersion,
