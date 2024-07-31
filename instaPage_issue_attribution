@@ -16,10 +16,11 @@ select distinct
   split_part(pv.pageUrl,'|',6) as keyword,
   split_part(pv.pageUrl,'|',7) as campaignName, 
   split_part(pv.pageUrl,'|',8) as adGroupName, 
-  vt.memberid as memberid   
-
+  vt.rxcampaign as assigned_visit_campaign,  
+  vt.memberid as memberid
+  
 from intl.hive_event pv 
-	join intl.hive_visit vt on pv.visitorId = vt.visitorId and pv.sessionId = vt.sessionId and date(pv.dateCreated) = date(vt.startDate)
+	join intl.hive_visit vt on pv.visitorId = vt.visitorId and pv.sessionId = vt.sessionId and date(pv.dateCreated) = date(vt.startDate) and lower(vt.rxcampaign) not in ('sem', 'online', 'affiliate')
 
 where pv.name = 'PageView'
   and pv.year = 2024
