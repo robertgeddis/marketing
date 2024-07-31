@@ -18,7 +18,8 @@ select distinct
   split_part(pv.pageUrl,'|',6) as keyword,
   split_part(pv.pageUrl,'|',7) as campaignName, 
   split_part(pv.pageUrl,'|',8) as adGroupName, 
-  vt.rxcampaign as assigned_visit_campaign,  
+  vt.rxcampaign as assigned_visit_campaign, 
+  vt.startDate as visit_date, 
   vt.memberid as memberid
   
 from intl.hive_event pv 
