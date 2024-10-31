@@ -16,4 +16,25 @@ where year = year(now())
   and lower(rxsite) not like 'careus%'
   and entryurl like '%rx=%'
 
-limit 1000
+
+/////////////////////////////////////////////
+
+select distinct 
+  case when lower(rxcampaign) like '%sem%' then 'SEM'
+       when lower(rxcampaign) like '%online%' then 'Online'
+       when lower(rxcampaign) like '%affiliate%' then 'Affiliate'
+       when lower(rxcampaign) like '%email%' then 'Email'
+    else initcap(rxcampaign) end as campaign,
+  count(distinct entryurl) as urls,
+  count(distinct case when entryurl like '%utm%' then entryurl end) as url_utm,
+  (count(distinct entryurl)-count(distinct case when entryurl like '%utm%' then entryurl end)) as url_no_utm,
+  ((count(distinct case when entryurl like '%utm%' then entryurl end)/count(distinct entryurl))*100) as '% utm'
+  
+from intl.hive_visit
+where year = year(now())
+  and month = month(now())
+  and regexp_like(lower(rxcampaign), 'sem|online|affiliate|email')
+  and lower(rxsite) not like 'careus%'
+  and entryurl like '%rx=%'
+
+group by 1
