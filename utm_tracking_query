@@ -18,6 +18,7 @@ where year = year(now())
   and lower(rxsite) not like 'careus%'
   and entryurl like '%rx=%'
   and entryurl like '%utm%' 
+;
 
 --- TRACKING UTM COMPLETION
 
@@ -38,6 +39,7 @@ where year = year(now())
   and lower(rxsite) not like 'careus%'
   and entryurl like '%rx=%'
 group by 1
+;
 
 --- WITHOUT UTM TRACKING
 
