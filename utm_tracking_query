@@ -1,5 +1,5 @@
 
-///////////////////////////////////////////// WITH UTM
+--- WITH UTM
 
 select distinct 
   lower(rxcampaign) as campaign,
@@ -17,9 +17,9 @@ where year = year(now())
   and regexp_like(lower(rxcampaign), 'sem|online|affiliate|email')
   and lower(rxsite) not like 'careus%'
   and entryurl like '%rx=%'
+  and entryurl like '%utm%' 
 
-
-///////////////////////////////////////////// TRACKING UTM COMPLETION
+--- TRACKING UTM COMPLETION
 
 select distinct 
   case when lower(rxcampaign) like '%sem%' then 'SEM'
@@ -39,7 +39,7 @@ where year = year(now())
   and entryurl like '%rx=%'
 group by 1
 
-///////////////////////////////////////////// WITHOUT UTM TRACKING
+--- WITHOUT UTM TRACKING
 
 select distinct 
   case when lower(rxcampaign) like '%sem%' then 'SEM'
